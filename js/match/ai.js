@@ -45,7 +45,13 @@ const REAZIONE_PRONTA = 0.15;
  * l'accorgersi che la spinta non paga e il completare il passaggio sotto il
  * palo se ne vanno altri due, e l'avversario nel frattempo continua a contare.
  */
-const OSTINAZIONE_MAX = 1.8;
+const OSTINAZIONE_MAX = 2.5;
+
+/* Quanto in anticipo si legge l'arrivo del palo avversario sull'arco. Il valore
+ * effettivo è modulato dal Gioco di squadra: una squadra affiatata vede la
+ * giocata da lontano e ha il tempo di rigirarsi, una slegata se ne accorge
+ * quando ormai può solo strappare. */
+const ANTICIPO_BASE = 1.2;
 
 /* Carattere dei quattro chiamatori. I due parametri vanno tenuti vicini fra
  * loro: `anticipo` soprattutto, perché chiamare il sotto troppo presto o troppo
@@ -191,6 +197,25 @@ function decideInGiostra(m, ctx) {
   return rt.stamina > 0.15 ? CMD.push() : CMD.brake();
 }
 
+/* ==================== lettura del campo ==================== */
+
+/**
+ * Fra quanti secondi il palo della squadra `i` entrerà nell'arco, se il timone
+ * continua a girare così. `Infinity` se non ci sta andando.
+ *
+ * È quello che un chiamatore legge guardando il campo: non si aspetta che
+ * l'avversario sia dentro per muoversi, si vede arrivare e si prepara.
+ */
+function tempoAllIngresso(m, i) {
+  const off = normAngle(activeArm(m, i) - TUNING.ZONE_CENTER);
+  const margine = Math.abs(off) - TUNING.ZONE_HALF;
+  if (margine <= 0) return 0;                                  // già dentro
+  if (Math.abs(m.omega) < 1e-3) return Infinity;               // timone fermo
+  // Ci si avvicina solo ruotando verso il centro dell'arco, non allontanandosi.
+  if (Math.sign(m.omega) === Math.sign(off)) return Infinity;
+  return margine / Math.abs(m.omega);
+}
+
 /* ==================== regime: stallo ==================== */
 
 /**
@@ -199,7 +224,8 @@ function decideInGiostra(m, ctx) {
  */
 function decideInStallo(m, ctx) {
   const {
-    rt, foe, cfg, rng, goalDir, offset, dist, distFoe, fs, urgent, resting, mustHold, dentro,
+    rt, foe, team, cfg, rng, goalDir, offset, dist, distFoe, fs,
+    urgent, resting, mustHold, dentro,
   } = ctx;
 
   /* --- il proprio palo è in zona: si tratta solo di restarci --- */
@@ -222,37 +248,84 @@ function decideInStallo(m, ctx) {
   }
 
   /* --- l'avversario è nell'arco: bisogna portarlo via ---
-   * La risposta immediata non è il sotto ma lo STRAPPO: se si è girati male,
-   * tirare produce subito coppia nel verso giusto, mentre il passaggio sotto il
-   * palo costa secondi in cui l'avversario conta indisturbato. Nei primi istanti
-   * la tirata rende quasi quanto una spinta, ed è la difesa che si improvvisa.
-   * Il sotto arriva dopo, quando il chiamatore ha letto la situazione: le
-   * squadre affiatate quasi subito, le altre con qualche secondo di ritardo —
-   * e a quel punto lo strappo si è già esaurito.
+   * Dentro la zona la spinta è l'ULTIMA risorsa, non la prima. Spingere contro
+   * una squadra girata bene e piantata non porta via nessuno: le due coppie si
+   * annullano, il timone resta fermo e lo stallo lavora per chi sta contando.
+   * Quello che sposta davvero il timone è lo strappo della tirata, se si è
+   * girati male, e il sotto, che allinea le due squadre e fa partire la giostra
+   * portandosi via l'avversario. La spinta è ciò che si fa mentre si aspetta di
+   * poter fare l'una o l'altro.
    */
   if (distFoe <= 0) {
     const puoSotto = rt.sottoTimer <= 0 && sottoPronto(m, ctx.index);
+    const letto = ctx.allarme >= ctx.reazione;
 
-    if (rt.facing === goalDir) {
-      /* Girati bene, la spinta è la risposta giusta — finché muove il timone.
-       * Se non lo muove, insistere è il modo peggiore di spendere il fiato:
-       * l'avversario è piantato a spingere dalla parte opposta e gli bastano
-       * dieci secondi di stallo per vincere. A quel punto l'unica cosa che
-       * rimescola le carte è passare sotto: ci si ritrova girati male, ma
-       * allineati all'avversario, e la giostra che parte se lo porta via
-       * dall'arco. È una mossa che costa la posizione e va giocata solo quando
-       * la posizione, restando fermi, era comunque persa.
-       */
-      if (ctx.spintaVana >= OSTINAZIONE_MAX && puoSotto
-          && sottoChance(m, ctx.index) > 0.35) {
-        return CMD.sotto();
-      }
-      return CMD.push();
+    // Girati male: lo strappo è immediato, il sotto arriva appena letta la
+    // situazione — prima le squadre affiatate, più tardi le altre.
+    if (rt.facing !== goalDir) {
+      if (letto && puoSotto && sottoChance(m, ctx.index) > 0.5) return CMD.sotto();
+      return CMD.pull();
     }
 
-    const letto = ctx.allarme >= ctx.reazione;
-    if (letto && puoSotto && sottoChance(m, ctx.index) > 0.5) return CMD.sotto();
-    return CMD.pull();
+    /* Girati bene: la spinta si tiene solo finché sta davvero muovendo il
+     * timone. Appena smette di pagare si passa sotto — si perde la posizione,
+     * ma restando fermi era comunque persa.
+     */
+    if (letto && puoSotto && ctx.spintaVana >= OSTINAZIONE_MAX
+        && sottoChance(m, ctx.index) > 0.35) {
+      return CMD.sotto();
+    }
+    return CMD.push();
+  }
+
+  /* --- l'avversario ci sta arrivando: si gioca d'anticipo ---
+   * Aspettare che entri significa arrivare sempre un tempo dopo: il passaggio
+   * sotto il palo dura secondi, e chiamarlo quando l'avversario è già dentro
+   * vuol dire regalargli quei secondi. Un chiamatore lo vede arrivare e si
+   * muove prima — o si rigira in tempo per accoglierlo spingendo, o gli strappa
+   * il timone di mano prima che ci arrivi. Quanto lontano si legge la giocata
+   * dipende dal Gioco di squadra: una squadra affiatata la vede da lontano.
+   */
+  const arrivo = tempoAllIngresso(m, 1 - ctx.index);
+  const finestra = ANTICIPO_BASE * (0.45 + 0.75 * team.coord);
+
+  if (arrivo < finestra) {
+    if (rt.facing !== goalDir) {
+      const puoSotto = rt.sottoTimer <= 0 && sottoPronto(m, ctx.index);
+      // C'è tempo per completare il passaggio prima che entri: ci si rigira ora,
+      // così lo si accoglie spingendo invece di subirlo girati male.
+      if (arrivo > team.sottoTime * 0.9 && puoSotto && sottoChance(m, ctx.index) > 0.5) {
+        return CMD.sotto();
+      }
+      // Troppo tardi per rigirarsi: si tira, e lo strappo è al suo massimo
+      // proprio adesso.
+      return CMD.pull();
+    }
+    /* Girati bene, con l'avversario che sta arrivando: la spinta lo respinge
+     * prima che entri, ed è l'unico momento in cui è la giocata giusta contro
+     * di lui — dentro l'arco non lo sarebbe più.
+     *
+     * A meno che non stia entrando comunque. Se il timone continua a portarlo
+     * dentro nonostante la spinta, respingerlo non è più un'opzione: allora si
+     * passa sotto adesso, prima che ci arrivi. Ci si allinea a lui e parte la
+     * giostra — entra lo stesso, ma esce dopo un istante, e la tenuta non
+     * comincia mai. È la stessa idea del contropiede: se non puoi fermare la
+     * corsa, cambiala di natura.
+     *
+     * Non è però una mossa automatica: è una lettura, e va sbagliata a volte.
+     * Applicata ogni volta che se ne presenta l'occasione nega all'avversario
+     * qualunque tenuta — le tirate finiscono tutte allo scadere del tempo e la
+     * Zona Palio smette di essere una posizione che si conquista. Quanto spesso
+     * la si veda dipende dal Gioco di squadra.
+     */
+    const puoSotto = rt.sottoTimer <= 0 && sottoPronto(m, ctx.index);
+    if (arrivo < team.sottoTime && puoSotto && sottoChance(m, ctx.index) > 0.4
+        && rng() < 0.14 + 0.3 * team.coord) {
+      return CMD.sotto();
+    }
+    // Non è il momento di rifiatare: chi si pianta a frenare lo lascia entrare
+    // e poi dovrà tirarlo fuori, che costa molto di più.
+    return rt.stamina > 0.2 ? CMD.push() : CMD.brake();
   }
 
   if (resting && !mustHold) return CMD.brake();
