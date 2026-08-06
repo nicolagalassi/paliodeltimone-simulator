@@ -40,6 +40,13 @@ const SLOPPINESS = 0.10;
 const REAZIONE_LENTA = 2.4;
 const REAZIONE_PRONTA = 0.15;
 
+/* Quanto a lungo si insiste con una spinta che non muove il timone, prima di
+ * cambiare gioco. Va tenuto basso rispetto ai secondi di tenuta richiesti: fra
+ * l'accorgersi che la spinta non paga e il completare il passaggio sotto il
+ * palo se ne vanno altri due, e l'avversario nel frattempo continua a contare.
+ */
+const OSTINAZIONE_MAX = 1.8;
+
 /* Carattere dei quattro chiamatori. I due parametri vanno tenuti vicini fra
  * loro: `anticipo` soprattutto, perché chiamare il sotto troppo presto o troppo
  * tardi rispetto alla durata del passaggio non è un modo di giocare, è un
@@ -72,6 +79,9 @@ export function createAi(index, style = 'metodico', rng = Math.random) {
   let resting = false;
   // Da quanto il palo avversario è dentro l'arco: è l'orologio della reazione.
   let allarme = 0;
+  // Da quanto si spinge contro un timone che non si muove. È la misura
+  // dell'ostinazione: oltre una certa soglia insistere non è più una tattica.
+  let spintaVana = 0;
   // Soglie leggermente diverse per ogni chiamatore: due squadre con lo stesso
   // ciclo di fatica restano in fase e non succede mai niente.
   const restEnter = 0.24 + rng() * 0.16;
@@ -80,7 +90,18 @@ export function createAi(index, style = 'metodico', rng = Math.random) {
   return function decide(m) {
     // L'allarme scorre a ogni passo, non solo quando si rivaluta: altrimenti
     // il tempo di reazione dipenderebbe dal caso invece che dalla squadra.
-    allarme = teamInZone(m, 1 - index) ? allarme + TUNING.STEP : 0;
+    const minacciato = teamInZone(m, 1 - index);
+    allarme = minacciato ? allarme + TUNING.STEP : 0;
+
+    /* La spinta "paga" solo se il timone gira nel verso che porta l'avversario
+     * fuori dall'arco. Contro una squadra girata bene e ben piantata le due
+     * coppie si annullano: si spinge a pieno carico e il timone resta fermo,
+     * mentre il cronometro dell'avversario continua a correre. Questo contatore
+     * distingue lo sforzo che sta funzionando da quello sprecato. */
+    const pagando = Math.sign(m.omega) === goalDir && Math.abs(m.omega) > 0.05;
+    if (!minacciato) spintaVana = 0;
+    else if (pagando) spintaVana = Math.max(0, spintaVana - TUNING.STEP * 2);
+    else spintaVana += TUNING.STEP;
 
     cooldown -= TUNING.STEP;
     if (cooldown > 0) return current;
@@ -112,7 +133,7 @@ export function createAi(index, style = 'metodico', rng = Math.random) {
     const ctx = {
       index, rt, foe, team, cfg, rng, goalDir, offset, dist, distFoe, fs,
       urgent, resting, mustHold, dentro: teamInZone(m, index),
-      allarme, reazione,
+      allarme, reazione, spintaVana,
     };
 
     current = inGiostra(m) ? decideInGiostra(m, ctx) : decideInStallo(m, ctx);
@@ -210,13 +231,27 @@ function decideInStallo(m, ctx) {
    * e a quel punto lo strappo si è già esaurito.
    */
   if (distFoe <= 0) {
-    if (rt.facing === goalDir) return CMD.push();
+    const puoSotto = rt.sottoTimer <= 0 && sottoPronto(m, ctx.index);
+
+    if (rt.facing === goalDir) {
+      /* Girati bene, la spinta è la risposta giusta — finché muove il timone.
+       * Se non lo muove, insistere è il modo peggiore di spendere il fiato:
+       * l'avversario è piantato a spingere dalla parte opposta e gli bastano
+       * dieci secondi di stallo per vincere. A quel punto l'unica cosa che
+       * rimescola le carte è passare sotto: ci si ritrova girati male, ma
+       * allineati all'avversario, e la giostra che parte se lo porta via
+       * dall'arco. È una mossa che costa la posizione e va giocata solo quando
+       * la posizione, restando fermi, era comunque persa.
+       */
+      if (ctx.spintaVana >= OSTINAZIONE_MAX && puoSotto
+          && sottoChance(m, ctx.index) > 0.35) {
+        return CMD.sotto();
+      }
+      return CMD.push();
+    }
 
     const letto = ctx.allarme >= ctx.reazione;
-    if (letto && rt.sottoTimer <= 0 && sottoPronto(m, ctx.index)
-        && sottoChance(m, ctx.index) > 0.5) {
-      return CMD.sotto();
-    }
+    if (letto && puoSotto && sottoChance(m, ctx.index) > 0.5) return CMD.sotto();
     return CMD.pull();
   }
 
