@@ -45,7 +45,7 @@ const REAZIONE_PRONTA = 0.15;
  * l'accorgersi che la spinta non paga e il completare il passaggio sotto il
  * palo se ne vanno altri due, e l'avversario nel frattempo continua a contare.
  */
-const OSTINAZIONE_MAX = 2.5;
+const OSTINAZIONE_MAX = 1.4;
 
 /* Quanto in anticipo si legge l'arrivo del palo avversario sull'arco. Il valore
  * effettivo è modulato dal Gioco di squadra: una squadra affiatata vede la
