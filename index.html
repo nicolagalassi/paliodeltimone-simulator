@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Palio del Timone — Simulatore</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/screens.css">
+<link rel="stylesheet" href="css/match.css">
+<link rel="stylesheet" href="css/mobile.css">
+<meta name="theme-color" content="#12100d">
+<meta name="description" content="Simulatore tattico del Palio del Timone: scegli il quartiere, componi la rosa, chiama la tirata.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2312100d'/><path d='M16 5v22M5 16h22' stroke='%23f2dfa8' stroke-width='3'/><circle cx='16' cy='16' r='3' fill='%23d8ad4c'/></svg>">
+</head>
+<body>
+
+<!-- ============ SCHERMATA: SCELTA FAZIONE ============ -->
+<section class="screen" id="screen-faction" data-screen="faction">
+  <header class="screen-head">
+    <h1 class="title">Palio del Timone</h1>
+    <p class="subtitle">Scegli il quartiere che chiamerai alla tirata.</p>
+  </header>
+
+  <div class="faction-grid" id="faction-grid"></div>
+
+  <div class="preset-bar">
+    <span class="preset-label">Formato della tirata</span>
+    <div class="preset-options" id="preset-options">
+      <button type="button" class="preset-btn is-active" data-preset="rapida">
+        <strong>Breve</strong><span>2 min · 10 s in zona</span>
+      </button>
+      <button type="button" class="preset-btn" data-preset="regolamentare">
+        <strong>Regolamentare</strong><span>4 min · 10 s in zona</span>
+      </button>
+    </div>
+  </div>
+
+  <footer class="screen-foot">
+    <button type="button" class="btn btn-primary" id="btn-faction-confirm" disabled>Conferma quartiere</button>
+    <button type="button" class="btn btn-ghost" id="btn-continue-save" hidden>Riprendi torneo salvato</button>
+  </footer>
+</section>
+
+<!-- ============ SCHERMATA: DRAFT ROSTER ============ -->
+<section class="screen" id="screen-roster" data-screen="roster" hidden>
+  <header class="screen-head">
+    <h1 class="title">Componi la rosa</h1>
+    <p class="subtitle">
+      Sei tiratori fissi per tutto il torneo. Tetto di peso complessivo: <strong>540 kg</strong>.
+    </p>
+  </header>
+
+  <div class="budget-bar">
+    <div class="budget-meter">
+      <div class="budget-fill" id="budget-fill"></div>
+      <div class="budget-cap"></div>
+    </div>
+    <div class="budget-readout">
+      <span id="budget-kg">0</span> / 540 kg
+      <span class="budget-count"><span id="budget-picked">0</span> / 6 tiratori</span>
+    </div>
+  </div>
+
+  <div class="roster-layout">
+    <div class="pool-panel">
+      <h2 class="panel-title">Tiratori disponibili</h2>
+      <div class="pool-grid" id="pool-grid"></div>
+    </div>
+    <aside class="picked-panel">
+      <h2 class="panel-title">La tua rosa</h2>
+      <div class="picked-list" id="picked-list"></div>
+      <div class="team-averages" id="team-averages"></div>
+    </aside>
+  </div>
+
+  <footer class="screen-foot">
+    <button type="button" class="btn btn-ghost" id="btn-roster-auto">Riempi automaticamente</button>
+    <button type="button" class="btn btn-ghost" id="btn-roster-clear">Svuota</button>
+    <button type="button" class="btn btn-primary" id="btn-roster-confirm" disabled>Inizia il torneo</button>
+  </footer>
+</section>
+
+<!-- ============ SCHERMATA: CALENDARIO / TORNEO ============ -->
+<section class="screen" id="screen-tournament" data-screen="tournament" hidden>
+  <header class="screen-head screen-head-row">
+    <div>
+      <h1 class="title" id="tournament-title">Torneo</h1>
+      <p class="subtitle" id="tournament-subtitle"></p>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-abandon">Abbandona torneo</button>
+  </header>
+
+  <div class="tournament-layout">
+    <div class="calendar-panel">
+      <h2 class="panel-title">Calendario</h2>
+      <div class="calendar" id="calendar"></div>
+    </div>
+    <aside class="standings-panel">
+      <h2 class="panel-title">Classifica</h2>
+      <table class="standings" id="standings"></table>
+      <div class="my-squad" id="my-squad"></div>
+    </aside>
+  </div>
+
+  <footer class="screen-foot">
+    <button type="button" class="btn btn-ghost" id="btn-sim-all">Simula il resto del torneo</button>
+    <button type="button" class="btn btn-primary" id="btn-play-next">Gioca la prossima tirata</button>
+  </footer>
+</section>
+
+<!-- ============ SCHERMATA: MATCH ============ -->
+<section class="screen screen-match" id="screen-match" data-screen="match" hidden>
+  <div class="match-hud-top">
+    <div class="hud-team hud-team-a">
+      <div class="hud-team-head">
+        <span class="hud-team-name" id="hud-name-a">—</span>
+        <span class="hud-you" id="hud-you-a" hidden>tu</span>
+      </div>
+      <div class="hud-hold"><div class="hud-hold-fill" id="hold-fill-a"></div><span id="hold-text-a">0.0s</span></div>
+      <div class="hud-stamina"><div class="hud-stamina-fill" id="stamina-fill-a"></div></div>
+    </div>
+
+    <div class="hud-clock">
+      <div class="hud-time-row">
+        <div class="hud-time" id="hud-time">1:00</div>
+        <button type="button" class="btn-pause" id="btn-pause" title="Pausa (P)" aria-label="Pausa">❙❙</button>
+      </div>
+      <div class="hud-hold-target">tieni <span id="hud-hold-target">5</span>s in zona</div>
+      <div class="hud-edge" id="hud-edge"></div>
+    </div>
+
+    <div class="hud-team hud-team-b">
+      <div class="hud-team-head">
+        <span class="hud-you" id="hud-you-b" hidden>tu</span>
+        <span class="hud-team-name" id="hud-name-b">—</span>
+      </div>
+      <div class="hud-hold"><div class="hud-hold-fill" id="hold-fill-b"></div><span id="hold-text-b">0.0s</span></div>
+      <div class="hud-stamina"><div class="hud-stamina-fill" id="stamina-fill-b"></div></div>
+    </div>
+  </div>
+
+  <!-- Velocità della giostra: sotto la soglia il sotto riesce sempre. -->
+  <div class="giostra" id="giostra">
+    <span class="giostra-label">giostra</span>
+    <div class="giostra-gauge">
+      <div class="giostra-safe" id="giostra-safe"></div>
+      <div class="giostra-fill" id="giostra-fill"></div>
+      <div class="giostra-mark" id="giostra-mark"></div>
+    </div>
+    <span class="giostra-read"><b id="giostra-rpm">0.0</b> giri/min</span>
+    <span class="giostra-state" id="giostra-state">sotto sicuro</span>
+  </div>
+
+  <div class="arena">
+    <canvas id="field"></canvas>
+    <div class="pause-overlay" id="pause-overlay" hidden>
+      <div class="overlay-card">
+        <h2>Pausa</h2>
+        <p>La tirata riprende da dove l'hai lasciata.</p>
+        <button type="button" class="btn btn-primary" id="btn-resume">Riprendi</button>
+      </div>
+    </div>
+    <div class="match-overlay" id="match-overlay" hidden>
+      <div class="overlay-card">
+        <h2 id="overlay-title">—</h2>
+        <p id="overlay-detail"></p>
+        <button type="button" class="btn btn-primary" id="btn-overlay-continue">Continua</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="commands" id="commands">
+    <button type="button" class="cmd" data-cmd="push">
+      <kbd>S</kbd><strong>Spinta</strong><em>avanti, spalle al palo</em>
+    </button>
+    <button type="button" class="cmd" data-cmd="pull">
+      <kbd>T</kbd><strong>Tirata</strong><em>il palo a sé, all'indietro</em>
+    </button>
+    <button type="button" class="cmd" data-cmd="sotto">
+      <kbd>I</kbd><strong>Sotto</strong><em>passa e gira la squadra</em>
+    </button>
+    <button type="button" class="cmd" data-cmd="brake">
+      <kbd>F</kbd><strong>Freno giostra</strong><em>rallenta · recupera</em>
+    </button>
+  </div>
+
+  <p class="commands-hint" id="commands-hint"></p>
+</section>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

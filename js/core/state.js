@@ -1,0 +1,96 @@
+/**
+ * Stato globale unico + persistenza.
+ * Ogni mutazione passa da una funzione di questo modulo: nessuna scrittura
+ * sparsa nel resto dell'app, così il salvataggio resta sempre coerente.
+ */
+
+const SAVE_KEY = 'pdt.save.v2';
+
+export const PRESETS = {
+  rapida:        { id: 'rapida',        label: 'Breve',         duration: 120, hold: 10 },
+  regolamentare: { id: 'regolamentare', label: 'Regolamentare', duration: 240, hold: 10 },
+};
+
+/** @type {any} */
+let state = null;
+
+const listeners = new Set();
+
+export function subscribe(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+function emit() {
+  for (const fn of listeners) fn(state);
+}
+
+export const getState = () => state;
+
+export function setState(next, { save = true } = {}) {
+  state = next;
+  if (save) persist();
+  emit();
+  return state;
+}
+
+/** Applica una mutazione in-place e notifica. */
+export function mutate(fn, { save = true } = {}) {
+  fn(state);
+  if (save) persist();
+  emit();
+  return state;
+}
+
+export function newTournamentState({ seed, factionId, roster, presetId, teams, schedule }) {
+  return {
+    version: 2,
+    seed,
+    factionId,
+    presetId: presetId in PRESETS ? presetId : 'rapida',
+    roster,
+    teams,           // { [factionId]: { factionId, roster, isPlayer } }
+    schedule,        // array di giornate
+    finals: null,    // creato al termine del girone
+    stage: 'group',  // 'group' | 'finals' | 'done'
+    createdAt: Date.now(),
+  };
+}
+
+export const getPreset = (s = state) => PRESETS[s?.presetId] ?? PRESETS.rapida;
+
+/* ---------------- persistenza ---------------- */
+
+export function persist() {
+  if (!state) return;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (err) {
+    // Quota piena o storage disabilitato: il gioco resta giocabile in memoria.
+    console.warn('Salvataggio non riuscito:', err);
+  }
+}
+
+export function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== 2 || !parsed.schedule) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function hasSave() {
+  return loadSave() !== null;
+}
+
+export function clearSave() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch { /* ignora */ }
+  state = null;
+  emit();
+}

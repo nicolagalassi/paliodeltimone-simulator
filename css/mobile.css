@@ -1,0 +1,183 @@
+/**
+ * Adattamenti per telefono. Caricato per ultimo: sovrascrive i default.
+ *
+ * Due vincoli guidano tutto quello che c'è qui dentro. Il primo è il pollice:
+ * durante la tirata il giocatore martella i comandi, e ciò che conta è che
+ * siano larghi, in basso, e che nessun gesto accidentale faccia scorrere la
+ * pagina. Il secondo è che sul telefono lo spazio verticale è la risorsa
+ * scarsa: ogni riga di contorno tolta è campo di gioco guadagnato.
+ */
+
+/* ============ area sicura e scorrimento ============ */
+
+/* Il notch e la barra gesti non devono mangiarsi i controlli. */
+.screen {
+  padding-left: max(var(--pad), env(safe-area-inset-left));
+  padding-right: max(var(--pad), env(safe-area-inset-right));
+  padding-bottom: max(var(--pad), env(safe-area-inset-bottom));
+}
+.screen-match {
+  padding-top: max(0.8rem, env(safe-area-inset-top));
+  padding-bottom: max(0.8rem, env(safe-area-inset-bottom));
+}
+
+/* Durante la tirata la pagina non si muove: niente rimbalzo elastico e niente
+   pull-to-refresh mentre si tiene premuta la spinta. */
+body:has(#screen-match:not([hidden])) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ============ dispositivi touch ============ */
+@media (hover: none) {
+  /* Le scorciatoie da tastiera non esistono: lo spazio va al comando. */
+  .cmd kbd { display: none; }
+  .cmd {
+    padding: 0.75rem 0.45rem;
+    /* Tenere premuta la spinta non deve far comparire la lente, il menu di
+       copia o la selezione del testo: è il gesto centrale del gioco. */
+    touch-action: none;
+    -webkit-touch-callout: none;
+  }
+  /* Su touch :hover resta "appiccicato" dopo il tocco e la card sembra rotta. */
+  .faction-card:hover { transform: none; border-color: var(--line); }
+  .faction-card.is-selected:hover { border-color: var(--fc); }
+  /* Bersagli abbastanza grandi da centrare col pollice. */
+  .picked-row button { padding: 0.2rem 0.5rem; font-size: 1.3rem; }
+}
+
+/* ============ telefono in verticale ============ */
+@media (max-width: 700px) {
+
+  /* ---- scelta del quartiere: quattro card che stanno quasi in uno schermo ---- */
+  .faction-grid { grid-template-columns: 1fr; gap: 0.55rem; }
+  .faction-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.8rem 1rem;
+  }
+  .faction-crest { grid-area: 1 / 1 / 3 / 2; width: 26px; height: 26px; margin: 0; }
+  .faction-name { font-size: 1.05rem; }
+  .faction-color { font-size: 0.75rem; }
+  .faction-bonus {
+    grid-column: 1 / -1;
+    margin-top: 0.6rem; padding-top: 0.5rem; font-size: 0.78rem;
+  }
+  .faction-card::after { width: 120px; height: 120px; }
+
+  .preset-options { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .screen-foot .btn { flex: 1; }
+
+  /* ---- draft: il budget resta sempre in vista mentre si scorre il pool ---- */
+  .budget-bar {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 0.55rem 0;
+    box-shadow: 0 8px 12px -8px var(--bg);
+  }
+  .pool-grid { grid-template-columns: 1fr; }
+  /* La rosa in costruzione va letta PRIMA di scegliere, non in fondo alla
+     pagina dopo diciotto schede di tiratori. */
+  .picked-panel { order: -1; position: static; padding: 0.8rem; }
+  .roster-layout { gap: 0.9rem; }
+  .shooter-stats { gap: 0.5rem; }
+
+  /* ---- torneo ---- */
+  .screen-head-row { flex-direction: column; gap: 0.5rem; align-items: stretch; }
+  .screen-head-row .title { font-size: 1.5rem; }
+  .screen-head-row .btn { align-self: flex-start; }
+
+  /* I due quartieri restano affiancati, il punteggio scende sotto: su 390 px
+     un risultato completo di tenuta, motivo e durata non ci sta in mezzo ai
+     nomi senza spingerne uno fuori dallo schermo. */
+  .fixture {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "home away" "score score";
+    gap: 0.35rem 0.5rem;
+    font-size: 0.84rem;
+  }
+  .fixture-team.left { grid-area: home; }
+  .fixture-team.right { grid-area: away; }
+  .fixture-score {
+    grid-area: score; justify-self: center;
+    font-size: 0.72rem; padding: 0.1rem 0.4rem;
+  }
+  .fixture-time { margin-left: 0.35rem; padding-left: 0.35rem; }
+  .standings-panel { position: static; }
+
+  /* ---- tirata ---- */
+  .screen-match { gap: 0.55rem; }
+  .hud-team-name { font-size: 0.85rem; }
+  .hud-hold { height: 18px; }
+  .giostra { gap: 0.4rem; font-size: 0.68rem; }
+  .giostra-gauge { width: min(140px, 32vw); }
+  .giostra-label { letter-spacing: 0.08em; }
+  .commands { gap: 0.4rem; }
+  .cmd strong { font-size: 0.88rem; }
+  .cmd em { font-size: 0.62rem; }
+  .commands-hint { font-size: 0.7rem; }
+}
+
+/* ============ telefono in orizzontale ============ */
+/**
+ * In orizzontale l'altezza è pochissima: impilare HUD, campo e comandi come in
+ * verticale lascerebbe un campo grande quanto un francobollo e i comandi fuori
+ * schermo. Si passa quindi a due colonne — il campo prende tutta l'altezza a
+ * sinistra, tutto il resto si incolonna a destra — e la pagina non scorre.
+ */
+@media (orientation: landscape) and (max-height: 560px) {
+  .screen-match {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(230px, 33%);
+    grid-template-areas:
+      "arena hud"
+      "arena giostra"
+      "arena cmds";
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 0.45rem;
+    height: 100dvh;
+    min-height: 0;
+    max-width: none;
+    padding: 0.5rem;
+    overflow: hidden;
+  }
+  /* La colonna è stretta: il cronometro va sopra e le due squadre sotto,
+     affiancate, altrimenti i nomi si riducono a due lettere e dei puntini. */
+  .match-hud-top {
+    grid-area: hud;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "clock clock" "teama teamb";
+    gap: 0.3rem 0.5rem;
+  }
+  .hud-team-a { grid-area: teama; }
+  .hud-team-b { grid-area: teamb; }
+  .hud-clock { grid-area: clock; min-width: 0; }
+  .hud-time-row { gap: 0.4rem; }
+  .giostra { grid-area: giostra; justify-content: flex-start; font-size: 0.64rem; gap: 0.35rem; }
+  .giostra-gauge { width: min(110px, 14vw); }
+  .arena { grid-area: arena; min-height: 0; overflow: hidden; }
+  /* Due per due: quattro bersagli larghi, raggiungibili col pollice destro
+     senza scoprire il campo. */
+  .commands {
+    grid-area: cmds; align-content: end;
+    grid-template-columns: 1fr 1fr; gap: 0.35rem;
+  }
+  .commands-hint { display: none; }
+
+  /* Il campo si dimensiona sull'altezza, non sulla larghezza. Il valore è in
+     unità di viewport e non in percentuale: dentro una griglia il `100%` di
+     un'altezza a sua volta implicita non è risolvibile, e il canvas tornerebbe
+     alla sua dimensione intrinseca sfondando lo schermo. */
+  #field { width: auto; height: 92dvh; max-width: 100%; }
+
+  .hud-team-name { font-size: 0.72rem; }
+  .hud-hold { height: 15px; max-width: none; }
+  .hud-hold span { font-size: 0.6rem; }
+  .hud-time { font-size: 1.3rem; }
+  .hud-hold-target, .hud-edge { font-size: 0.6rem; }
+  .cmd { padding: 0.4rem 0.3rem; }
+  .cmd strong { font-size: 0.76rem; }
+  .cmd em { display: none; }
+}
