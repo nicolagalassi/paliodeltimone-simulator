@@ -32,10 +32,14 @@ i Mediani, poi gli Interni — sempre entro il tetto fisso dei **540 kg**.
 | **Interno** | il più leggero | corta | leggero e agile, poco braccio |
 
 La posizione è la fascia di peso del tiratore, e la sua **leva** entra nella
-tirata: la Forza di un Esterno, più lontano dal perno, sposta il timone più di
-quella di un Interno. Siccome i pesanti nascono forti e i leggeri agili, le
-posizioni acquistano un'identità — e comporre la formazione diventa scegliere i
-due migliori per fascia invece di bilanciare a mano un budget indistinto.
+tirata: la Forza di un Esterno, più lontano dal perno, sposta il timone molto
+più di quella di un Interno. La spinta è il confronto di potenza, e qui la
+differenza si vede — una squadra con Esterni fortissimi spinge decisamente di
+più, e **a parità di Forza la squadra più pesante vince** il confronto diretto.
+Una rosa leggera non regge la spinta a viso aperto: deve rifiutarla e giocare la
+giostra. Siccome i pesanti nascono forti e i leggeri agili, le posizioni
+acquistano un'identità — e comporre la formazione diventa scegliere i due
+migliori per fascia invece di bilanciare a mano un budget indistinto.
 
 Ogni tiratore porta anche una **disciplina**, che nasce dal Gioco di squadra:
 oggi la tirata la applica per intero, ma è l'aggancio per un futuro in cui, con
