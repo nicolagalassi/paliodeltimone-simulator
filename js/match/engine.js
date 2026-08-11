@@ -17,6 +17,8 @@
  *   perché i loro bracci distano 90°.
  */
 
+import { leverageOf } from '../core/roster.js';
+
 const DEG = Math.PI / 180;
 
 export const TUNING = {
@@ -210,15 +212,32 @@ const WEIGHTS = {
  */
 const POWER_BASE = 0.55;
 
-/** Potenza normalizzata (~0.62..1.0) della squadra per un dato comando. */
+// Comandi la cui coppia passa dai bracci del timone: qui la posizione del
+// tiratore fa leva, e la sua statistica conta in proporzione al braccio.
+const LEVERED = new Set(['push', 'pull', 'brake']);
+
+/**
+ * Potenza normalizzata (~0.62..1.0) della squadra per un dato comando.
+ *
+ * Per i comandi che agiscono sul timone la media è PESATA sulla leva della
+ * posizione: la Forza di un Esterno, più lontano dal perno, sposta il timone
+ * più di quella di un Interno. I pesi di leva hanno media 1 sui sei tiratori,
+ * quindi una squadra dalla forza uniforme rende come prima; a spostare l'ago è
+ * avere i tiratori giusti nelle posizioni di maggior leva.
+ */
 function power(team, kind) {
   const w = WEIGHTS[kind];
+  const levered = LEVERED.has(kind);
   let sum = 0;
-  for (const s of team.stats) {
-    sum += (s.forza * w.forza + s.agilita * w.agilita
+  let wsum = 0;
+  team.stats.forEach((s, i) => {
+    const contrib = (s.forza * w.forza + s.agilita * w.agilita
           + s.squadra * w.squadra + s.resistenza * w.resistenza) / 100;
-  }
-  const raw = Math.min(1.15, sum / team.stats.length);
+    const lev = levered ? team.lever[i] : 1;
+    sum += contrib * lev;
+    wsum += lev;
+  });
+  const raw = Math.min(1.15, sum / wsum);
   return POWER_BASE + (1 - POWER_BASE) * raw;
 }
 
@@ -238,7 +257,21 @@ export function makeTeam(factionId, roster, bonusInfo) {
     return out;
   });
   const mass = roster.reduce((sum, s) => sum + s.weight, 0);
-  const team = { factionId, stats, mass, roster };
+  // Braccio di leva di ciascun tiratore, dalla sua posizione. Entra nella coppia
+  // di spinta, tirata e freno: la Forza di un Esterno vale più di quella di un
+  // Interno perché agisce più lontano dal perno.
+  const lever = roster.map((s) => leverageOf(s.role));
+
+  /* Disciplina di ciascun tiratore: quanto segue la chiamata del Chiamatore.
+   * Nasce dal Gioco di squadra e per ora è solo un dato — la tirata la applica
+   * ancora per intero. È l'aggancio per un futuro in cui, con una squadra poco
+   * affiatata, qualcuno possa non rispettare il comando: la coppia si costruisce
+   * già tiratore per tiratore (vedi `power`), quindi basterà far cadere qui il
+   * contributo di chi non esegue. */
+  const disciplineOf = stats.map((x) => Math.max(0, Math.min(1, x.squadra / 100)));
+
+  const team = { factionId, stats, mass, roster, lever, disciplineOf };
+  team.discipline = disciplineOf.reduce((a, b) => a + b, 0) / (disciplineOf.length || 1);
   team.power = {
     push: power(team, 'push'),
     pull: power(team, 'pull'),

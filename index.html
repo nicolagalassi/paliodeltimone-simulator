@@ -56,11 +56,13 @@
 <!-- ============ SCHERMATA: DRAFT ROSTER ============ -->
 <section class="screen" id="screen-roster" data-screen="roster" hidden>
   <header class="screen-head">
-    <h1 class="title" id="roster-title">Componi la rosa</h1>
+    <h1 class="title" id="roster-title">Componi la formazione</h1>
     <p class="subtitle" id="roster-subtitle">
-      Sei tiratori fissi per tutto il torneo. Tetto di peso complessivo: <strong>540 kg</strong>.
+      Due tiratori per posizione — Esterni, Mediani, Interni — entro il tetto di <strong>540 kg</strong>.
     </p>
   </header>
+
+  <div class="formation-steps" id="formation-steps"></div>
 
   <div class="budget-bar">
     <div class="budget-meter">
@@ -75,20 +77,21 @@
 
   <div class="roster-layout">
     <div class="pool-panel">
-      <h2 class="panel-title">Tiratori disponibili</h2>
+      <h2 class="panel-title" id="pool-title">Esterni disponibili</h2>
+      <p class="pool-hint" id="pool-hint"></p>
       <div class="pool-grid" id="pool-grid"></div>
     </div>
     <aside class="picked-panel">
-      <h2 class="panel-title">La tua rosa</h2>
-      <div class="picked-list" id="picked-list"></div>
+      <h2 class="panel-title">La tua formazione</h2>
+      <div class="formation-list" id="formation-list"></div>
       <div class="team-averages" id="team-averages"></div>
     </aside>
   </div>
 
   <footer class="screen-foot">
-    <button type="button" class="btn btn-ghost" id="btn-roster-auto">Riempi automaticamente</button>
-    <button type="button" class="btn btn-ghost" id="btn-roster-clear">Svuota</button>
-    <button type="button" class="btn btn-primary" id="btn-roster-confirm" disabled>Inizia il torneo</button>
+    <button type="button" class="btn btn-ghost" id="btn-roster-back" disabled>Indietro</button>
+    <button type="button" class="btn btn-ghost" id="btn-roster-auto">Riempi questa posizione</button>
+    <button type="button" class="btn btn-primary" id="btn-roster-confirm" disabled>Avanti</button>
   </footer>
 </section>
 

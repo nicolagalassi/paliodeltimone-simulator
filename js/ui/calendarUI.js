@@ -5,7 +5,7 @@ import { getFaction } from '../data/factions.js';
 import {
   computeStandings, currentDay, allFixtures, finalsFixtures, computePodium,
 } from '../core/tournament.js';
-import { totalWeight } from '../core/roster.js';
+import { totalWeight, ROLE_BY_ID, ROLE_IDS } from '../core/roster.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -164,9 +164,14 @@ function renderMySquad(state) {
     box.append(strong);
 
     const ul = el('ul');
-    for (const s of roster) {
+    const rank = (r) => ROLE_IDS.indexOf(r);
+    const ordered = roster.slice().sort((a, b) => rank(a.role) - rank(b.role));
+    for (const s of ordered) {
       const li = el('li');
-      li.append(el('span', null, s.name), el('span', null, `${s.weight} kg`));
+      const name = el('span', null, s.name);
+      const role = ROLE_BY_ID[s.role];
+      if (role) name.prepend(el('span', 'role-tag', role.short + ' '));
+      li.append(name, el('span', null, `${s.weight} kg`));
       ul.append(li);
     }
     box.append(ul);
