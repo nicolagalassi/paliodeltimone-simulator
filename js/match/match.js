@@ -122,6 +122,11 @@ export function playMatch({ homeTeam, awayTeam, controllers, preset, seed, title
     // IA girano headless), ma per sicurezza cade anch'esso nel ramo neutro.
     const giostraFocus = humans.length === 1 ? humans[0].index : null;
 
+    // Hotseat: col telefono steso fra i due, il pannello del Giocatore 2 va sul
+    // bordo opposto e a testa in giù. Lo attiva solo una tirata fra due umani;
+    // il posizionamento vero e proprio è in mobile.css, ristretto al verticale.
+    $('screen-match').classList.toggle('is-hotseat', duo && humans.length === 2);
+
     /* ---- HUD statico ---- */
     // Il quartiere del giocatore va riconosciuto a colpo d'occhio: i due nomi
     // sono simmetrici e senza marcatore si chiama la tirata per l'avversario.

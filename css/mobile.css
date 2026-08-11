@@ -118,6 +118,31 @@ body:has(#screen-match:not([hidden])) {
   .cmd strong { font-size: 0.88rem; }
   .cmd em { font-size: 0.62rem; }
   .commands-hint { font-size: 0.7rem; }
+
+  /* ---- hotseat: due giocatori ai due bordi del telefono ----
+   * Il pannello del Giocatore 2 lascia la colonna in fondo e va fissato in
+   * cima, ruotato di 180°: chi siede dal lato opposto se lo trova dritto e con
+   * i comandi nell'ordine giusto (la doppia riflessione della rotazione rimette
+   * le cose a posto dal suo punto di vista). Il pollice colpisce il pulsante che
+   * vede, perché la rotazione sposta anche l'area sensibile al tocco. In mezzo
+   * resta il campo; il Giocatore 1 tiene il suo pannello in basso, com'era. */
+  .screen-match.is-hotseat #cmd-player-b {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 20;
+    transform: rotate(180deg);
+    background: var(--bg);
+    padding: 0.5rem 0.8rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+  }
+  .screen-match.is-hotseat #cmd-player-b .commands-hint { display: none; }
+  /* Pulsanti più compatti in cima, così l'HUD resta visibile sotto il pannello
+     fissato senza rubare troppo campo. La riserva in alto lascia spazio al
+     pannello ruotato; il valore combacia con la sua altezza (~2 file di tasti). */
+  .screen-match.is-hotseat #cmd-player-b .cmd { padding: 0.45rem 0.4rem; }
+  .screen-match.is-hotseat #cmd-player-b .cmd em { display: none; }
+  .screen-match.is-hotseat { padding-top: 7.6rem; }
 }
 
 /* ============ telefono in orizzontale ============ */

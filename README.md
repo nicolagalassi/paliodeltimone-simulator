@@ -93,6 +93,11 @@ quartieri umani si incontrano si chiama la tirata in due, ognuno con i suoi tast
 A giocatore singolo restano validi anche gli alias comodi (`Spazio` e le frecce
 `↑`/`↓` per spinta e tirata).
 
+Su telefono in verticale, quando i due quartieri umani si affrontano, i comandi
+si dispongono in **hotseat**: il pannello del Giocatore 2 va in cima e ruotato
+di 180°, quello del Giocatore 1 resta in basso. Si posa il telefono fra i due e
+ognuno gioca dal proprio bordo, con i comandi dritti dal suo lato.
+
 ## Avvio in locale
 
 I moduli ES richiedono `http://`, quindi non basta aprire il file:
