@@ -10,13 +10,15 @@ import { totalWeight } from '../core/roster.js';
 const $ = (id) => document.getElementById(id);
 
 export function renderTournament(state, { onPlay, onSimulateAll }) {
-  const me = state.factionId;
+  // Un quartiere è "mio" se lo chiama un umano: uno a giocatore singolo, due in
+  // coppia. Tutta l'evidenziazione del calendario e della classifica passa di qui.
+  const mine = (id) => state.humans.includes(id);
   const teamIds = Object.keys(state.teams);
   const standings = computeStandings(state.schedule, teamIds);
 
   renderHead(state);
-  renderCalendar(state, me);
-  renderStandings(standings, me);
+  renderCalendar(state, mine);
+  renderStandings(standings, mine);
   renderMySquad(state);
   renderPlayButton(state, onPlay);
   renderSimulateButton(state, onSimulateAll);
@@ -25,7 +27,9 @@ export function renderTournament(state, { onPlay, onSimulateAll }) {
 function renderHead(state) {
   const faction = getFaction(state.factionId);
   document.documentElement.style.setProperty('--fc', faction.color);
-  $('tournament-title').textContent = `Palio del Timone — ${faction.name}`;
+  $('tournament-title').textContent = state.mode === 'duo'
+    ? `Palio del Timone — ${state.humans.map((id) => getFaction(id).name).join(' e ')}`
+    : `Palio del Timone — ${faction.name}`;
 
   const done = allFixtures(state.schedule).filter((f) => f.played).length;
   const total = allFixtures(state.schedule).length;
@@ -38,7 +42,7 @@ function renderHead(state) {
       : `Girone: ${done}/${total} tirate disputate · tirata ${preset}`;
 }
 
-function renderCalendar(state, me) {
+function renderCalendar(state, mine) {
   const box = clear($('calendar'));
   const day = currentDay(state.schedule);
 
@@ -46,7 +50,7 @@ function renderCalendar(state, me) {
     const card = el('div', 'matchday');
     card.classList.toggle('is-current', d === day && state.stage === 'group');
     card.append(el('div', 'matchday-title', d.label));
-    for (const f of d.fixtures) card.append(fixtureRow(f, me, d === day));
+    for (const f of d.fixtures) card.append(fixtureRow(f, mine, d === day));
     box.append(card);
   }
 
@@ -56,7 +60,7 @@ function renderCalendar(state, me) {
       const card = el('div', 'matchday');
       card.classList.toggle('is-current', state.stage === 'finals' && !f.played);
       card.append(el('div', 'matchday-title', labels[i]));
-      card.append(fixtureRow(f, me, state.stage === 'finals' && !f.played));
+      card.append(fixtureRow(f, mine, state.stage === 'finals' && !f.played));
       box.append(card);
     });
   }
@@ -64,9 +68,9 @@ function renderCalendar(state, me) {
   if (state.stage === 'done') box.prepend(podium(state));
 }
 
-function fixtureRow(f, me, isCurrent = false) {
+function fixtureRow(f, mine, isCurrent = false) {
   const row = el('div', 'fixture');
-  const isMine = f.home === me || f.away === me;
+  const isMine = mine(f.home) || mine(f.away);
   row.classList.toggle('is-mine', isMine);
   // Solo la tirata imminente va messa in risalto: marcare tutte quelle future
   // del giocatore fa perdere il senso di "questa è la prossima".
@@ -112,7 +116,7 @@ function formatTime(sec) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function renderStandings(standings, me) {
+function renderStandings(standings, mine) {
   const table = clear($('standings'));
   const head = el('tr');
   for (const h of ['#', 'Quartiere', 'G', 'V', 'N', 'P', 'Pti']) head.append(el('th', null, h));
@@ -124,7 +128,7 @@ function renderStandings(standings, me) {
   for (const row of standings) {
     const faction = getFaction(row.factionId);
     const tr = el('tr');
-    tr.classList.toggle('is-mine', row.factionId === me);
+    tr.classList.toggle('is-mine', mine(row.factionId));
 
     tr.append(el('td', 'pos', row.position));
 
@@ -148,15 +152,25 @@ function renderStandings(standings, me) {
 
 function renderMySquad(state) {
   const box = clear($('my-squad'));
-  const roster = state.roster;
-  box.append(el('strong', null, `La tua rosa · ${totalWeight(roster)} kg`));
-  const ul = el('ul');
-  for (const s of roster) {
-    const li = el('li');
-    li.append(el('span', null, s.name), el('span', null, `${s.weight} kg`));
-    ul.append(li);
-  }
-  box.append(ul);
+  const duo = state.mode === 'duo';
+
+  state.humans.forEach((id, i) => {
+    const roster = state.teams[id].roster;
+    const label = duo
+      ? `Giocatore ${i + 1} · ${getFaction(id).name} · ${totalWeight(roster)} kg`
+      : `La tua rosa · ${totalWeight(roster)} kg`;
+    const strong = el('strong', null, label);
+    strong.style.setProperty('--fc', getFaction(id).color);
+    box.append(strong);
+
+    const ul = el('ul');
+    for (const s of roster) {
+      const li = el('li');
+      li.append(el('span', null, s.name), el('span', null, `${s.weight} kg`));
+      ul.append(li);
+    }
+    box.append(ul);
+  });
 }
 
 function podium(state) {
@@ -167,7 +181,7 @@ function podium(state) {
   const ol = el('ol');
   for (const pos of [1, 2, 3, 4]) {
     const f = getFaction(p[pos]);
-    const li = el('li', p[pos] === state.factionId ? 'fixture-winner' : null, f.name);
+    const li = el('li', state.humans.includes(p[pos]) ? 'fixture-winner' : null, f.name);
     ol.append(li);
   }
   box.append(ol);
@@ -206,6 +220,8 @@ function nextLabel(state) {
   if (state.stage === 'finals') return 'Gioca la finale';
   const day = currentDay(state.schedule);
   if (!day) return 'Prosegui';
-  const mine = day.fixtures.find((f) => !f.played && (f.home === state.factionId || f.away === state.factionId));
+  const mine = day.fixtures.find(
+    (f) => !f.played && (state.humans.includes(f.home) || state.humans.includes(f.away)),
+  );
   return mine ? `Gioca ${day.label}` : 'Prosegui la giornata';
 }

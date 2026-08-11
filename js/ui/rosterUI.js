@@ -12,12 +12,20 @@ const $ = (id) => document.getElementById(id);
  * @param {object} cfg
  * @param {Array} cfg.pool
  * @param {string} cfg.factionId
+ * @param {number|null} [cfg.playerNo]  1 o 2 nel torneo a due, per intitolare la
+ *   schermata al giocatore giusto; `null`/assente a giocatore singolo.
  * @param {(roster:Array)=>void} cfg.onConfirm
  */
-export function mountRoster({ pool, factionId, onConfirm }) {
+export function mountRoster({ pool, factionId, playerNo = null, onConfirm }) {
   let roster = [];
   const faction = getFaction(factionId);
   document.documentElement.style.setProperty('--fc', faction.color);
+
+  // In coppia si compongono due rose di fila: l'intestazione dice a chi tocca e
+  // con quale quartiere, così non ci si confonde fra un draft e l'altro.
+  $('roster-title').textContent = playerNo
+    ? `Giocatore ${playerNo} · ${faction.name}`
+    : 'Componi la rosa';
 
   const poolGrid = $('pool-grid');
   const pickedList = $('picked-list');

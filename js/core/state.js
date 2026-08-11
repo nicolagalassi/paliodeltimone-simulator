@@ -42,14 +42,20 @@ export function mutate(fn, { save = true } = {}) {
   return state;
 }
 
-export function newTournamentState({ seed, factionId, roster, presetId, teams, schedule }) {
+export function newTournamentState({
+  seed, factionId, roster, presetId, teams, schedule, mode = 'single', humans,
+}) {
   return {
-    version: 2,
+    version: 3,
     seed,
+    mode,                                   // 'single' | 'duo'
+    // Quartieri chiamati da un umano, in ordine di giocatore. `factionId` resta
+    // il primo per compatibilità con i tanti punti che leggono "il mio quartiere".
+    humans: humans ?? [factionId],
     factionId,
     presetId: presetId in PRESETS ? presetId : 'rapida',
     roster,
-    teams,           // { [factionId]: { factionId, roster, isPlayer } }
+    teams,           // { [factionId]: { factionId, roster, isPlayer, playerNo } }
     schedule,        // array di giornate
     finals: null,    // creato al termine del girone
     stage: 'group',  // 'group' | 'finals' | 'done'
@@ -76,7 +82,13 @@ export function loadSave() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== 2 || !parsed.schedule) return null;
+    if (!parsed || !parsed.schedule) return null;
+    // Si accettano i salvataggi dalla v2 in poi. Ai vecchi, nati prima della
+    // modalità a due, si aggiungono i campi mancanti come torneo a giocatore
+    // singolo, così un torneo lasciato a metà resta riprendibile.
+    if (parsed.version !== 2 && parsed.version !== 3) return null;
+    if (!parsed.mode) parsed.mode = 'single';
+    if (!parsed.humans) parsed.humans = [parsed.factionId];
     return parsed;
   } catch {
     return null;

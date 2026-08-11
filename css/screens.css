@@ -33,6 +33,9 @@
 .faction-card:hover::after { opacity: 0.2; }
 .faction-card.is-selected { border-color: var(--fc); background: var(--bg-elev-2); }
 .faction-card.is-selected::after { opacity: 0.28; }
+/* Quartiere già preso dal primo giocatore: resta visibile ma fuori scelta. */
+.faction-card.is-taken { opacity: 0.4; filter: grayscale(0.6); cursor: not-allowed; }
+.faction-card.is-taken:hover { transform: none; border-color: var(--line); }
 .faction-crest {
   width: 34px; height: 34px; border-radius: 50%;
   background: var(--fc);
