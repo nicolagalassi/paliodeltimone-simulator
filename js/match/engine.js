@@ -17,6 +17,8 @@
  *   perché i loro bracci distano 90°.
  */
 
+import { leverageOf } from '../core/roster.js';
+
 const DEG = Math.PI / 180;
 
 export const TUNING = {
@@ -50,6 +52,31 @@ export const TUNING = {
    * opposto, ma posizione scomoda — meno resa e più fatica.
    */
   BASE_TORQUE: 1400,
+
+  /* --- forza di spinta: Forza degli Esterni e peso ---
+   * La spinta è il confronto di potenza, e qui deve vedersi. La coppia di
+   * spinta e tirata nasce da due fattori che si moltiplicano:
+   *
+   *   FORZA  — media della Forza PESATA sulla leva della posizione. Gli Esterni,
+   *     con il braccio più lungo, contano molto più degli Interni: una squadra
+   *     con Esterni fortissimi spinge decisamente di più. L'esponente divarica
+   *     il confronto, così la differenza di Forza è determinante e non cosmetica.
+   *
+   *   PESO   — i chili sui bracci sono spinta: a parità di Forza una squadra da
+   *     540 kg vince quella da 450. Anche questo con un esponente, perché il
+   *     vantaggio di peso non si annacqui.
+   *
+   * I riferimenti sono tarati perché una squadra media resti sulla scala di
+   * coppia di prima (i tempi della tirata non cambiano); a divaricare sono gli
+   * estremi. I due fattori NON compaiono in `power`: là restano freno, sotto,
+   * prontezza e tenuta, dove a decidere sono altre statistiche.
+   */
+  FORCE_REF: 0.55,          // Forza-di-leva media → fattore 1
+  FORCE_EXP: 1.7,           // quanto la Forza divarica la spinta
+  FORCE_MIN: 0.5, FORCE_MAX: 2.2,
+  WEIGHT_REF: 500,          // kg di riferimento → fattore 1
+  WEIGHT_EXP: 3.2,          // quanto il peso incide sulla spinta
+  WEIGHT_MIN: 0.5, WEIGHT_MAX: 1.8,
   /* La tirata non regge il confronto con la spinta, e non deve: chi si trova
    * girato male può resistere un momento, non tenere una posizione. Contro una
    * squadra che spinge, chi tira viene portato fuori — e in fretta. Per reggere
@@ -210,17 +237,58 @@ const WEIGHTS = {
  */
 const POWER_BASE = 0.55;
 
-/** Potenza normalizzata (~0.62..1.0) della squadra per un dato comando. */
+// Il freno passa dai bracci del timone: anche qui la posizione fa leva.
+const LEVERED = new Set(['brake']);
+
+/**
+ * Potenza normalizzata (~0.55..1.0) della squadra per un dato comando.
+ *
+ * Vale per freno, sotto, prontezza e tenuta — non per spinta e tirata, che
+ * hanno un modello a sé (vedi `forceRaw` e l'uso di FORCE_/WEIGHT_ in `step`).
+ * Per il freno la media è pesata sulla leva della posizione.
+ */
 function power(team, kind) {
   const w = WEIGHTS[kind];
+  const levered = LEVERED.has(kind);
   let sum = 0;
-  for (const s of team.stats) {
-    sum += (s.forza * w.forza + s.agilita * w.agilita
+  let wsum = 0;
+  team.stats.forEach((s, i) => {
+    const contrib = (s.forza * w.forza + s.agilita * w.agilita
           + s.squadra * w.squadra + s.resistenza * w.resistenza) / 100;
-  }
-  const raw = Math.min(1.15, sum / team.stats.length);
+    const lev = levered ? team.lever[i] : 1;
+    sum += contrib * lev;
+    wsum += lev;
+  });
+  const raw = Math.min(1.15, sum / wsum);
   return POWER_BASE + (1 - POWER_BASE) * raw;
 }
+
+/* Composizione della forza di spinta e tirata: la Forza domina, il Gioco di
+ * squadra e l'Agilità danno un contributo minore. È volutamente più sbilanciata
+ * sulla Forza dei pesi di `power`, perché è qui che la Forza deve pesare. */
+const FORCE_BLEND = {
+  push: { forza: 0.72, squadra: 0.18, agilita: 0.10 },
+  pull: { forza: 0.66, squadra: 0.18, agilita: 0.16 },
+};
+
+/**
+ * Forza di spinta/tirata della squadra, media PESATA sulla leva e NON compressa:
+ * gli Esterni contano per il loro intero braccio, così una squadra con Esterni
+ * fortissimi produce un valore nettamente più alto. Tipicamente ~0.35..1.0.
+ */
+function forceRaw(team, kind) {
+  const w = FORCE_BLEND[kind];
+  let sum = 0;
+  let lw = 0;
+  team.stats.forEach((s, i) => {
+    const blend = (s.forza * w.forza + s.squadra * w.squadra + s.agilita * w.agilita) / 100;
+    sum += blend * team.lever[i];
+    lw += team.lever[i];
+  });
+  return sum / lw;
+}
+
+const clamp = (lo, hi, v) => Math.max(lo, Math.min(hi, v));
 
 /**
  * Prepara i dati immutabili di una squadra a partire dalla rosa.
@@ -238,15 +306,40 @@ export function makeTeam(factionId, roster, bonusInfo) {
     return out;
   });
   const mass = roster.reduce((sum, s) => sum + s.weight, 0);
-  const team = { factionId, stats, mass, roster };
+  // Braccio di leva di ciascun tiratore, dalla sua posizione. Entra nella coppia
+  // di spinta, tirata e freno: la Forza di un Esterno vale più di quella di un
+  // Interno perché agisce più lontano dal perno.
+  const lever = roster.map((s) => leverageOf(s.role));
+
+  /* Disciplina di ciascun tiratore: quanto segue la chiamata del Chiamatore.
+   * Nasce dal Gioco di squadra e per ora è solo un dato — la tirata la applica
+   * ancora per intero. È l'aggancio per un futuro in cui, con una squadra poco
+   * affiatata, qualcuno possa non rispettare il comando: la coppia si costruisce
+   * già tiratore per tiratore (vedi `power`), quindi basterà far cadere qui il
+   * contributo di chi non esegue. */
+  const disciplineOf = stats.map((x) => Math.max(0, Math.min(1, x.squadra / 100)));
+
+  const team = { factionId, stats, mass, roster, lever, disciplineOf };
+  team.discipline = disciplineOf.reduce((a, b) => a + b, 0) / (disciplineOf.length || 1);
   team.power = {
-    push: power(team, 'push'),
-    pull: power(team, 'pull'),
     brake: power(team, 'brake'),
     sotto: power(team, 'sotto'),
     prontezza: power(team, 'prontezza'),
     fatica: power(team, 'fatica'),
   };
+
+  /* Forza di spinta e tirata: Forza pesata sulla leva, poi divaricata da un
+   * esponente attorno a un riferimento. È qui che una squadra con Esterni forti
+   * spinge davvero di più. */
+  team.forceRaw = { push: forceRaw(team, 'push'), pull: forceRaw(team, 'pull') };
+  team.forceFactor = {
+    push: clamp(TUNING.FORCE_MIN, TUNING.FORCE_MAX, (team.forceRaw.push / TUNING.FORCE_REF) ** TUNING.FORCE_EXP),
+    pull: clamp(TUNING.FORCE_MIN, TUNING.FORCE_MAX, (team.forceRaw.pull / TUNING.FORCE_REF) ** TUNING.FORCE_EXP),
+  };
+  /* Il peso è spinta: a parità di Forza, la squadra più pesante vince. */
+  team.weightFactor = clamp(
+    TUNING.WEIGHT_MIN, TUNING.WEIGHT_MAX, (mass / TUNING.WEIGHT_REF) ** TUNING.WEIGHT_EXP,
+  );
   /* La Resistenza si traduce in due moltiplicatori opposti: chi la possiede
    * consuma meno e recupera prima. È la statistica che decide chi regge la
    * giostra fino al calo e chi ci arriva svuotato. */
@@ -494,10 +587,11 @@ export function step(m, dt, cmdA, cmdB) {
       ? (burst ? TUNING.PULL_BURST_EFF : TUNING.PULL_EFFICIENCY)
       : 1;
 
-    // Il peso della rosa è leva: sui bracci del timone i chili contano quanto
-    // le braccia, ed è ciò che ripaga chi spende il budget in tiratori pesanti.
-    const leverage = 0.88 + 0.24 * team.heaviness;
-    const effort = team.power[kind] * staminaFactor(rt.stamina) * surge * gain * leverage;
+    // La coppia di spinta/tirata: Forza degli Esterni × peso della rosa. È il
+    // confronto di potenza, e qui la squadra più forte e più pesante spinge di
+    // più — nettamente, non di un'inezia.
+    const effort = team.forceFactor[kind] * team.weightFactor
+      * staminaFactor(rt.stamina) * surge * gain;
     const t = TUNING.BASE_TORQUE * effort * dir;
 
     torque += t;

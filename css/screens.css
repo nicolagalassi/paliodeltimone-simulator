@@ -140,6 +140,49 @@
 .team-averages b { font-family: var(--font-mono); color: var(--sand); font-weight: 600; }
 .bonus-flag { color: var(--ok); font-size: 0.72rem; }
 
+/* ---- draft: passi della formazione ---- */
+.formation-steps { display: flex; gap: 0.5rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+.formation-step {
+  flex: 1; min-width: 120px;
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  border: 1px solid var(--line); border-radius: var(--radius-s);
+  background: var(--bg-elev); padding: 0.5rem 0.4rem;
+  cursor: pointer; color: var(--ink-dim);
+  transition: border-color 90ms ease, background 90ms ease, color 90ms ease;
+}
+.formation-step:disabled { opacity: 0.5; cursor: not-allowed; }
+.formation-step.is-current { border-color: var(--fc); background: var(--bg-elev-2); color: var(--ink); }
+.formation-step.is-done { border-color: var(--ok); }
+.formation-step-name { font-weight: 600; font-size: 0.9rem; }
+.formation-step-count { font-family: var(--font-mono); font-size: 0.72rem; }
+.formation-step.is-done .formation-step-count { color: var(--ok); }
+
+.pool-hint { color: var(--ink-faint); font-size: 0.82rem; margin: -0.2rem 0 0.7rem; }
+
+/* ---- draft: formazione scelta, per posizione ---- */
+.formation-list { display: flex; flex-direction: column; gap: 0.7rem; }
+.formation-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.formation-group-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint);
+}
+.formation-group.is-current .formation-role { color: var(--fc); }
+.formation-lev { font-family: var(--font-mono); }
+.formation-slot {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+  border: 1px solid var(--line-soft); border-radius: var(--radius-s);
+  padding: 0.4rem 0.6rem; font-size: 0.86rem;
+}
+.formation-slot.is-empty { border-style: dashed; }
+.formation-empty { color: var(--ink-faint); font-style: italic; font-size: 0.8rem; }
+.formation-kg { font-family: var(--font-mono); font-size: 0.78rem; color: var(--sand); }
+.formation-rm {
+  border: none; background: none; color: var(--ink-faint);
+  cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 0.2rem;
+}
+.formation-rm:hover { color: var(--danger); }
+.role-tag { font-family: var(--font-mono); font-size: 0.68rem; color: var(--fc); letter-spacing: 0.04em; }
+
 /* ============ torneo ============ */
 .tournament-layout {
   display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1.2rem; align-items: start;

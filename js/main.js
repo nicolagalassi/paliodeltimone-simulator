@@ -6,7 +6,7 @@
  */
 
 import { FACTIONS, getFaction, STAT_LABEL } from './data/factions.js';
-import { generatePool, generateAiRoster } from './core/roster.js';
+import { generateFormationPool, generateAiRoster } from './core/roster.js';
 import { makeRng, randomSeed } from './core/rng.js';
 import {
   getState, setState, mutate, newTournamentState, loadSave, clearSave, getPreset, PRESETS,
@@ -126,7 +126,7 @@ function startDraft(factionId, playerNo) {
   // Ogni giocatore pesca dal proprio mazzo: due rose non si contendono gli
   // stessi tiratori. Il primo seme è anche quello del torneo.
   const poolSeed = playerNo === 1 ? draftSeed : (draftSeed ^ 0x9e3779b1) >>> 0;
-  const pool = generatePool(poolSeed);
+  const pool = generateFormationPool(poolSeed);
   mountRoster({
     pool,
     factionId,

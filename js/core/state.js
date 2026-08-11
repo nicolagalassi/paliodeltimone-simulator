@@ -4,6 +4,8 @@
  * sparsa nel resto dell'app, così il salvataggio resta sempre coerente.
  */
 
+import { assignRolesByWeight } from './roster.js';
+
 const SAVE_KEY = 'pdt.save.v2';
 
 export const PRESETS = {
@@ -89,6 +91,15 @@ export function loadSave() {
     if (parsed.version !== 2 && parsed.version !== 3) return null;
     if (!parsed.mode) parsed.mode = 'single';
     if (!parsed.humans) parsed.humans = [parsed.factionId];
+    // Rose salvate prima delle posizioni: si assegna un ruolo per peso, così il
+    // motore trova la leva e la formazione resta coerente.
+    for (const id of Object.keys(parsed.teams ?? {})) {
+      const roster = parsed.teams[id]?.roster;
+      if (Array.isArray(roster) && roster.some((s) => !s.role)) assignRolesByWeight(roster);
+    }
+    if (Array.isArray(parsed.roster) && parsed.roster.some((s) => !s.role)) {
+      assignRolesByWeight(parsed.roster);
+    }
     return parsed;
   } catch {
     return null;
