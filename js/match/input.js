@@ -3,21 +3,37 @@
  *
  * Spinta, tirata e freno sono continui: valgono finché il tasto è premuto.
  * Il sotto è un impulso — si chiama una volta e la squadra esegue il passaggio.
+ *
+ * La mappa dei tasti è un parametro: a giocatore singolo il Chiamatore ha tutti
+ * gli alias comodi (lettere, frecce, barra), mentre a due giocatori sulla stessa
+ * tastiera i due comandi vanno separati — le lettere a sinistra al primo, le
+ * frecce a destra al secondo — perché nessun tasto risponda a entrambi.
  */
 
 import { CMD } from './engine.js';
 
-export function createInput(container) {
+/** Giocatore unico: lettere mnemoniche più gli alias di frecce e barra. */
+export const KEYS_SOLO = {
+  KeyS: 'push', ArrowUp: 'push', Space: 'push',
+  KeyT: 'pull', ArrowDown: 'pull',
+  KeyI: 'sotto',
+  KeyF: 'brake',
+};
+
+/** Primo giocatore in coppia: solo le lettere, a sinistra della tastiera. */
+export const KEYS_P1 = {
+  KeyS: 'push', KeyT: 'pull', KeyI: 'sotto', KeyF: 'brake',
+};
+
+/** Secondo giocatore in coppia: le frecce, a destra della tastiera. */
+export const KEYS_P2 = {
+  ArrowUp: 'push', ArrowDown: 'pull', ArrowRight: 'sotto', ArrowLeft: 'brake',
+};
+
+export function createInput(container, KEYS = KEYS_SOLO) {
   const held = new Set();
   let impulse = null;          // 'sotto'
   let enabled = true;
-
-  const KEYS = {
-    KeyS: 'push', ArrowUp: 'push', Space: 'push',
-    KeyT: 'pull', ArrowDown: 'pull',
-    KeyI: 'sotto',
-    KeyF: 'brake',
-  };
 
   // Ordine di precedenza quando più comandi continui sono premuti insieme.
   const PRIORITY = ['brake', 'pull', 'push'];

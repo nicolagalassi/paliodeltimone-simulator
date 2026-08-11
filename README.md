@@ -49,6 +49,24 @@ verso: le coppie si sommano e il timone parte in rotazione continua. Chi tira la
 rallenta appena. Se ne esce solo con un altro sotto, cronometrato — e in piena
 rotazione può fallire.
 
+### Due giocatori
+
+Sulla schermata iniziale si sceglie **1 giocatore** (tu contro le tre IA) o
+**2 giocatori** sulla stessa tastiera. In coppia si compongono due rose di fila —
+prima il Giocatore 1, poi il Giocatore 2 — e ciascuno chiama il proprio
+quartiere per tutto il torneo; gli altri due restano all'IA. Quando i due
+quartieri umani si incontrano si chiama la tirata in due, ognuno con i suoi tasti.
+
+| | Giocatore 1 | Giocatore 2 |
+|---|---|---|
+| **Spinta** | `S` | `↑` |
+| **Tirata** | `T` | `↓` |
+| **Sotto** | `I` | `→` |
+| **Freno giostra** | `F` | `←` |
+
+A giocatore singolo restano validi anche gli alias comodi (`Spazio` e le frecce
+`↑`/`↓` per spinta e tirata).
+
 ## Avvio in locale
 
 I moduli ES richiedono `http://`, quindi non basta aprire il file:

@@ -164,6 +164,32 @@
 .overlay-card p { color: var(--ink-dim); margin: 0.6rem 0 1.2rem; font-size: 0.9rem; }
 
 /* ============ comandi ============ */
+/* A due giocatori i due set di comandi stanno fianco a fianco: il primo a
+ * sinistra, il secondo a destra, come le mani sulla tastiera. In solitario è
+ * visibile solo il pannello sinistro, che si prende tutta la larghezza. */
+.commands-area {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.cmd-player {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.cmd-player[hidden] { display: none; }
+.cmd-player-label {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.cmd-player-label[hidden] { display: none; }
+
 .commands {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -171,6 +197,9 @@
 }
 @media (max-width: 700px) {
   .commands { grid-template-columns: repeat(2, 1fr); }
+  /* Sullo schermo stretto due pannelli da quattro non ci stanno affiancati:
+     si impilano, il giocatore 1 sopra e il giocatore 2 sotto. */
+  .commands-area { flex-direction: column; }
 }
 
 .commands-hint {

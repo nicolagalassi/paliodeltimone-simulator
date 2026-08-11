@@ -17,11 +17,23 @@
 <!-- ============ SCHERMATA: SCELTA FAZIONE ============ -->
 <section class="screen" id="screen-faction" data-screen="faction">
   <header class="screen-head">
-    <h1 class="title">Palio del Timone</h1>
-    <p class="subtitle">Scegli il quartiere che chiamerai alla tirata.</p>
+    <h1 class="title" id="faction-title">Palio del Timone</h1>
+    <p class="subtitle" id="faction-subtitle">Scegli il quartiere che chiamerai alla tirata.</p>
   </header>
 
   <div class="faction-grid" id="faction-grid"></div>
+
+  <div class="preset-bar" id="mode-bar">
+    <span class="preset-label">Chiamatori</span>
+    <div class="preset-options" id="mode-options">
+      <button type="button" class="preset-btn is-active" data-mode="single">
+        <strong>1 giocatore</strong><span>tu contro le tre IA</span>
+      </button>
+      <button type="button" class="preset-btn" data-mode="duo">
+        <strong>2 giocatori</strong><span>stessa tastiera · due quartieri</span>
+      </button>
+    </div>
+  </div>
 
   <div class="preset-bar">
     <span class="preset-label">Formato della tirata</span>
@@ -44,8 +56,8 @@
 <!-- ============ SCHERMATA: DRAFT ROSTER ============ -->
 <section class="screen" id="screen-roster" data-screen="roster" hidden>
   <header class="screen-head">
-    <h1 class="title">Componi la rosa</h1>
-    <p class="subtitle">
+    <h1 class="title" id="roster-title">Componi la rosa</h1>
+    <p class="subtitle" id="roster-subtitle">
       Sei tiratori fissi per tutto il torneo. Tetto di peso complessivo: <strong>540 kg</strong>.
     </p>
   </header>
@@ -169,22 +181,47 @@
     </div>
   </div>
 
-  <div class="commands" id="commands">
-    <button type="button" class="cmd" data-cmd="push">
-      <kbd>S</kbd><strong>Spinta</strong><em>avanti, spalle al palo</em>
-    </button>
-    <button type="button" class="cmd" data-cmd="pull">
-      <kbd>T</kbd><strong>Tirata</strong><em>il palo a sé, all'indietro</em>
-    </button>
-    <button type="button" class="cmd" data-cmd="sotto">
-      <kbd>I</kbd><strong>Sotto</strong><em>passa e gira la squadra</em>
-    </button>
-    <button type="button" class="cmd" data-cmd="brake">
-      <kbd>F</kbd><strong>Freno giostra</strong><em>rallenta · recupera</em>
-    </button>
-  </div>
+  <div class="commands-area">
+    <!-- Pannello sinistro: giocatore 1, lettere. In solitario è l'unico usato. -->
+    <div class="cmd-player" id="cmd-player-a">
+      <div class="cmd-player-label" id="cmd-label-a" hidden>Giocatore 1</div>
+      <div class="commands" id="commands">
+        <button type="button" class="cmd" data-cmd="push">
+          <kbd>S</kbd><strong>Spinta</strong><em>avanti, spalle al palo</em>
+        </button>
+        <button type="button" class="cmd" data-cmd="pull">
+          <kbd>T</kbd><strong>Tirata</strong><em>il palo a sé, all'indietro</em>
+        </button>
+        <button type="button" class="cmd" data-cmd="sotto">
+          <kbd>I</kbd><strong>Sotto</strong><em>passa e gira la squadra</em>
+        </button>
+        <button type="button" class="cmd" data-cmd="brake">
+          <kbd>F</kbd><strong>Freno giostra</strong><em>rallenta · recupera</em>
+        </button>
+      </div>
+      <p class="commands-hint" id="commands-hint"></p>
+    </div>
 
-  <p class="commands-hint" id="commands-hint"></p>
+    <!-- Pannello destro: giocatore 2, frecce. Comparare solo a due giocatori. -->
+    <div class="cmd-player" id="cmd-player-b" hidden>
+      <div class="cmd-player-label" id="cmd-label-b">Giocatore 2</div>
+      <div class="commands" id="commands-b">
+        <button type="button" class="cmd" data-cmd="push">
+          <kbd>↑</kbd><strong>Spinta</strong><em>avanti, spalle al palo</em>
+        </button>
+        <button type="button" class="cmd" data-cmd="pull">
+          <kbd>↓</kbd><strong>Tirata</strong><em>il palo a sé, all'indietro</em>
+        </button>
+        <button type="button" class="cmd" data-cmd="sotto">
+          <kbd>→</kbd><strong>Sotto</strong><em>passa e gira la squadra</em>
+        </button>
+        <button type="button" class="cmd" data-cmd="brake">
+          <kbd>←</kbd><strong>Freno giostra</strong><em>rallenta · recupera</em>
+        </button>
+      </div>
+      <p class="commands-hint" id="commands-hint-b"></p>
+    </div>
+  </div>
 </section>
 
 <script type="module" src="js/main.js"></script>
