@@ -137,6 +137,31 @@ body:has(#screen-match:not([hidden])) {
     box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
   }
   .screen-match.is-hotseat #cmd-player-b .commands-hint { display: none; }
+  .screen-match.is-hotseat #hand-player-b {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 20;
+    transform: rotate(180deg);
+    background: var(--bg);
+    padding: 0.5rem 0.8rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+  }
+
+  /* La mano in cima è più alta del pannello comandi: si compatta e le si
+     riserva lo spazio, così nomi e cronometro restano visibili sotto. */
+  .screen-match.is-hotseat.is-cards { padding-top: 9.4rem; }
+  .screen-match.is-hotseat #hand-player-b { gap: 0.3rem; padding-bottom: 0.4rem; }
+  .screen-match.is-hotseat #hand-player-b .card { min-height: 62px; }
+  .screen-match.is-hotseat .hand-peek { padding: 0.25rem 0.8rem; font-size: 0.74rem; }
+
+  /* ---- tirata a carte: cinque carte in fila, compatte ---- */
+  .hand-cards { gap: 0.3rem; }
+  .card { min-height: 74px; padding: 0.4rem 0.2rem 0.35rem; }
+  .card-role { display: none; }
+  .card-name { font-size: 0.74rem; }
+  .card-effect { font-size: 0.55rem; }
+  .card[data-key]::after { display: none; }
   /* Pulsanti più compatti in cima, così l'HUD resta visibile sotto il pannello
      fissato senza rubare troppo campo. La riserva in alto lascia spazio al
      pannello ruotato; il valore combacia con la sua altezza (~2 file di tasti). */
@@ -190,6 +215,10 @@ body:has(#screen-match:not([hidden])) {
     grid-template-columns: 1fr 1fr; gap: 0.35rem;
   }
   .commands-hint { display: none; }
+  .commands-area, .hand-area { grid-area: cmds; align-self: end; }
+  .hand-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .card { min-height: 0; }
+  .card-role { display: none; }
 
   /* Il campo si dimensiona sull'altezza, non sulla larghezza. Il valore è in
      unità di viewport e non in percentuale: dentro una griglia il `100%` di

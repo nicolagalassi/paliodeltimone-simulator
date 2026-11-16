@@ -9,7 +9,7 @@ import { FACTIONS, getFaction, STAT_LABEL } from './data/factions.js';
 import { generateFormationPool, generateAiRoster } from './core/roster.js';
 import { makeRng, randomSeed } from './core/rng.js';
 import {
-  getState, setState, mutate, newTournamentState, loadSave, clearSave, getPreset, PRESETS,
+  getState, setState, mutate, newTournamentState, loadSave, clearSave, getPreset, getCardPreset, PRESETS,
 } from './core/state.js';
 import {
   buildSchedule, ALL_FACTION_IDS, recordResult, currentDay, isGroupComplete,
@@ -19,12 +19,15 @@ import { showScreen, el } from './ui/screens.js';
 import { mountRoster } from './ui/rosterUI.js';
 import { renderTournament } from './ui/calendarUI.js';
 import { playMatch, simulateFixture, buildTeam } from './match/match.js';
+import { playCardMatch } from './cards/cardMatch.js';
+import { simulateCardFixture } from './cards/cardSim.js';
 
 const $ = (id) => document.getElementById(id);
 
 let selectedFaction = null;
 let selectedPreset = 'rapida';
 let selectedMode = 'single';       // 'single' | 'duo'
+let selectedTirata = 'carte';      // 'carte' | 'tempo'
 
 // Scelte di draft accumulate: uno solo a giocatore singolo, due in coppia.
 let picks = [];                    // [{ factionId, roster }]
@@ -48,6 +51,7 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
 
   // Modalità, formato e ripresa si scelgono una volta sola, al primo giocatore.
   $('mode-bar').hidden = !firstPick;
+  $('tirata-bar').hidden = !firstPick;
   $('preset-options').closest('.preset-bar').hidden = !firstPick;
 
   for (const f of FACTIONS) {
@@ -106,6 +110,13 @@ function wireModeAndPreset() {
     btn.onclick = () => {
       selectedMode = btn.dataset.mode;
       for (const b of $('mode-options').children) b.classList.toggle('is-active', b === btn);
+    };
+  }
+  for (const btn of $('tirata-options').querySelectorAll('.preset-btn')) {
+    btn.classList.toggle('is-active', btn.dataset.tirata === selectedTirata);
+    btn.onclick = () => {
+      selectedTirata = btn.dataset.tirata;
+      for (const b of $('tirata-options').children) b.classList.toggle('is-active', b === btn);
     };
   }
   for (const btn of $('preset-options').querySelectorAll('.preset-btn')) {
@@ -168,7 +179,7 @@ function startTournament() {
   const schedule = buildSchedule(ALL_FACTION_IDS, seed);
   setState(newTournamentState({
     seed, factionId: humans[0], roster: picks[0].roster, presetId: selectedPreset,
-    teams, schedule, mode: selectedMode, humans,
+    teams, schedule, mode: selectedMode, humans, tirata: selectedTirata,
   }));
   goToTournament();
 }
@@ -216,12 +227,14 @@ function fixtureSeed(state, fixture) {
  * a chiamare è lo stile IA del suo quartiere, sulla sua rosa.
  */
 function resolveFixture(state, fixture) {
-  const result = simulateFixture({
-    homeTeam: engineTeam(state, fixture.home),
-    awayTeam: engineTeam(state, fixture.away),
-    preset: getPreset(state),
-    seed: fixtureSeed(state, fixture),
-  });
+  const homeTeam = engineTeam(state, fixture.home);
+  const awayTeam = engineTeam(state, fixture.away);
+  const seed = fixtureSeed(state, fixture);
+  // Le tirate fra IA seguono le stesse regole di quelle giocate: a carte se il
+  // torneo è a carte, in tempo reale altrimenti.
+  const result = state.tirata === 'carte'
+    ? simulateCardFixture({ homeTeam, awayTeam, ...getCardPreset(state), seed })
+    : simulateFixture({ homeTeam, awayTeam, preset: getPreset(state), seed });
   recordResult(fixture, result);
 }
 
@@ -247,15 +260,17 @@ function playFixture(state, fixture, homeHuman, awayHuman) {
       ? { type: 'human', playerNo: humanNoOf(state, fixture.away), keys: keysFor(state, fixture.away) }
       : { type: 'ai' },
   ];
-  return playMatch({
+  const common = {
     homeTeam: engineTeam(state, fixture.home),
     awayTeam: engineTeam(state, fixture.away),
     controllers,
     duo: state.mode === 'duo',
-    preset: getPreset(state),
     seed: fixtureSeed(state, fixture),
     title: `${getFaction(fixture.home).name} – ${getFaction(fixture.away).name}`,
-  });
+  };
+  return state.tirata === 'carte'
+    ? playCardMatch({ ...common, ...getCardPreset(state) })
+    : playMatch({ ...common, preset: getPreset(state) });
 }
 
 async function onPlayNext() {

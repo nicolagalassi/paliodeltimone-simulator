@@ -33,7 +33,10 @@ function renderHead(state) {
 
   const done = allFixtures(state.schedule).filter((f) => f.played).length;
   const total = allFixtures(state.schedule).length;
-  const preset = state.presetId === 'regolamentare' ? '4 min · 10 s' : '2 min · 10 s';
+  const long = state.presetId === 'regolamentare';
+  const preset = state.tirata === 'carte'
+    ? `a carte, ${long ? 26 : 18} battute · 8 s`
+    : (long ? '4 min · 10 s' : '2 min · 10 s');
 
   $('tournament-subtitle').textContent = state.stage === 'done'
     ? 'Torneo concluso.'

@@ -2,7 +2,8 @@
 
 Simulatore tattico del **Palio del Timone**: si sceglie un quartiere, si compone
 una rosa di sei tiratori sotto il tetto dei 540 kg e si disputa un torneo fra i
-quattro quartieri, chiamando di persona le tirate.
+quattro quartieri, chiamando di persona le tirate — a carte coperte o in tempo
+reale.
 
 Nessuna dipendenza, nessun passo di build: HTML, CSS e moduli ES nativi.
 
@@ -51,8 +52,44 @@ Dodici tiratori su una croce imperniata al centro. Ogni squadra occupa due
 bracci opposti; vince chi tiene un proprio braccio nella **Zona Palio** per i
 secondi richiesti, o — a tempo scaduto — chi ha il palo più vicino all'arco.
 
-Il giocatore non muove i tiratori: è il **Chiamatore**, e dispone di quattro
-comandi.
+Il giocatore non muove i tiratori: è il **Chiamatore**. La tirata si chiama in
+due modi, che si scelgono all'avvio del torneo: **a carte** (il modo
+predefinito) o **in tempo reale**. Le regole fisiche sono le stesse; cambia come
+arrivano le chiamate.
+
+### Tirata a carte
+
+La tirata si divide in **battute** da cinque secondi — 18 nel formato breve, 26
+nel regolamentare — e per vincere si tiene il palo in zona **8 secondi**. A ogni
+battuta i due Chiamatori scelgono una carta **coperta**; le carte si scoprono
+insieme e il motore gioca la battuta sul campo. Nessuno vede la mossa
+dell'altro prima di aver scelto la propria: si vince prevedendo, non reagendo.
+
+Il **mazzo è la formazione**: ogni tiratore porta due carte del suo ruolo, e la
+loro forza viene dalle sue statistiche. In mano se ne tengono quattro, più il
+Freno che c'è sempre.
+
+| Carta | Da chi | Che cosa fa |
+|---|---|---|
+| **Spinta** | Esterno | Spinta piena per tutta la battuta |
+| **Spallata** | Esterno | Spinta più forte (con la sua Forza), ma brucia molto più fiato |
+| **Tenuta** | Mediano | Riporta il palo al centro dell'arco e lo ferma: la carta di chi è già dentro |
+| **Strappo** | Mediano | Il palo a sé di slancio: forte all'inizio, poi cala |
+| **Sotto** | Interno | Si passa sotto e si riparte spingendo dall'altra parte |
+| **Passaggio lampo** | Interno | Sotto sicuro e più rapido (con la sua Agilità) |
+| **Freno** | sempre in mano | Smorza la giostra e si rifiata |
+
+Con poco Gioco di squadra una chiamata può uscire **a metà**: è la disciplina
+dei tiratori che entra in campo. Il Chiamatore artificiale non vede la tua
+carta: prova le sue contro quelle che potresti avere — il tuo mazzo è pubblico,
+la tua mano no — e tiene conto di come hai giocato finora, quindi chi chiama
+sempre la stessa carta viene letto. Le carte si scelgono col mouse, col tocco o
+con i tasti `1`–`5` (il Giocatore 2 usa `6`–`0`). In due sullo stesso schermo
+ogni mano resta coperta finché il suo proprietario non la guarda.
+
+### Tirata in tempo reale
+
+Si tiene premuto il comando, e la squadra esegue finché lo si tiene.
 
 | Comando | Tasto | Che cosa fa |
 |---|---|---|
@@ -115,6 +152,7 @@ js/
 ├── core/      stato, PRNG seedabile, rose, calendario e classifica
 ├── data/      quartieri e generazione dei nomi
 ├── match/     engine (fisica pura), ai, renderer, input, loop di gioco
+├── cards/     tirata a carte: carte e mazzi, battuta, IA, sessione, partita
 └── ui/        schermate, draft, calendario
 ```
 

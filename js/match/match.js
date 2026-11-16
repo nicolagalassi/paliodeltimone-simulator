@@ -127,37 +127,14 @@ export function playMatch({ homeTeam, awayTeam, controllers, preset, seed, title
     // il posizionamento vero e proprio è in mobile.css, ristretto al verticale.
     $('screen-match').classList.toggle('is-hotseat', duo && humans.length === 2);
 
-    /* ---- HUD statico ---- */
-    // Il quartiere del giocatore va riconosciuto a colpo d'occhio: i due nomi
-    // sono simmetrici e senza marcatore si chiama la tirata per l'avversario.
-    // Il marcatore è un elemento a sé e non un suffisso del nome, altrimenti su
-    // schermo stretto è proprio lui a finire nei puntini di sospensione.
-    $('hud-name-a').textContent = factions[0].name;
-    $('hud-name-b').textContent = factions[1].name;
-    $('hud-you-a').hidden = true;
-    $('hud-you-b').hidden = true;
-    for (const h of humans) {
-      const badge = h.index === 0 ? $('hud-you-a') : $('hud-you-b');
-      badge.hidden = false;
-      badge.textContent = duo ? `G${h.playerNo}` : 'tu';
-    }
-    $('hud-you-a').style.setProperty('--tc', colors[0]);
-    $('hud-you-b').style.setProperty('--tc', colors[1]);
-    $('hud-name-a').style.setProperty('--tc', colors[0]);
-    $('hud-name-b').style.setProperty('--tc', colors[1]);
-    $('hud-hold-target').textContent = preset.hold;
-    $('match-overlay').hidden = true;
-    if (title) document.title = `${title} — Palio del Timone`;
+    // Tempo reale: si usano i pulsanti dei comandi, non la mano di carte.
+    $('screen-match').classList.remove('is-cards');
+    $('commands-area').hidden = false;
+    $('hand-area').hidden = true;
+    $('hud-battuta').hidden = true;
+    $('battuta-reveal').hidden = true;
 
-    const els = {
-      time: $('hud-time'),
-      edge: $('hud-edge'),
-      holdFill: [$('hold-fill-a'), $('hold-fill-b')],
-      holdText: [$('hold-text-a'), $('hold-text-b')],
-      stamina: [$('stamina-fill-a'), $('stamina-fill-b')],
-    };
-    els.holdFill[0].style.background = `linear-gradient(90deg, ${hexA(colors[0], 0.45)}, ${colors[0]})`;
-    els.holdFill[1].style.background = `linear-gradient(270deg, ${hexA(colors[1], 0.45)}, ${colors[1]})`;
+    const els = prepareHud({ factions, colors, humans, duo, hold: preset.hold, title });
 
     renderer.resize();
 
@@ -221,9 +198,56 @@ export function playMatch({ homeTeam, awayTeam, controllers, preset, seed, title
   });
 }
 
+/**
+ * HUD statico della tirata: nomi, marcatori dei giocatori, colori, obiettivo.
+ * Condiviso fra la tirata in tempo reale e quella a carte.
+ * @param {object} cfg
+ * @param {Array} cfg.factions   i due quartieri, [casa, trasferta]
+ * @param {string[]} cfg.colors
+ * @param {Array<{index:number, playerNo:number}>} cfg.humans  i lati umani
+ * @param {boolean} cfg.duo
+ * @param {number} cfg.hold      secondi di tenuta richiesti
+ * @param {string} [cfg.title]
+ * @returns {object} gli elementi dell'HUD dinamico, per `updateHud`
+ */
+export function prepareHud({ factions, colors, humans, duo, hold, title }) {
+  // Il quartiere del giocatore va riconosciuto a colpo d'occhio: i due nomi
+  // sono simmetrici e senza marcatore si chiama la tirata per l'avversario.
+  // Il marcatore è un elemento a sé e non un suffisso del nome, altrimenti su
+  // schermo stretto è proprio lui a finire nei puntini di sospensione.
+  $('hud-name-a').textContent = factions[0].name;
+  $('hud-name-b').textContent = factions[1].name;
+  $('hud-you-a').hidden = true;
+  $('hud-you-b').hidden = true;
+  for (const h of humans) {
+    const badge = h.index === 0 ? $('hud-you-a') : $('hud-you-b');
+    badge.hidden = false;
+    badge.textContent = duo ? `G${h.playerNo}` : 'tu';
+  }
+  $('hud-you-a').style.setProperty('--tc', colors[0]);
+  $('hud-you-b').style.setProperty('--tc', colors[1]);
+  $('hud-name-a').style.setProperty('--tc', colors[0]);
+  $('hud-name-b').style.setProperty('--tc', colors[1]);
+  $('hud-hold-target').textContent = hold;
+  $('match-overlay').hidden = true;
+  $('pause-overlay').hidden = true;
+  if (title) document.title = `${title} — Palio del Timone`;
+
+  const els = {
+    time: $('hud-time'),
+    edge: $('hud-edge'),
+    holdFill: [$('hold-fill-a'), $('hold-fill-b')],
+    holdText: [$('hold-text-a'), $('hold-text-b')],
+    stamina: [$('stamina-fill-a'), $('stamina-fill-b')],
+  };
+  els.holdFill[0].style.background = `linear-gradient(90deg, ${hexA(colors[0], 0.45)}, ${colors[0]})`;
+  els.holdFill[1].style.background = `linear-gradient(270deg, ${hexA(colors[1], 0.45)}, ${colors[1]})`;
+  return els;
+}
+
 /* ---------------- HUD ---------------- */
 
-function updateHud(m, els, preset, factions, colors) {
+export function updateHud(m, els, preset, factions, colors) {
   const left = Math.max(0, preset.duration - m.time);
   els.time.textContent = formatTime(left);
   els.time.classList.toggle('is-urgent', left <= 10);
@@ -257,7 +281,7 @@ function updateHud(m, els, preset, factions, colors) {
  * probabilità di sotto adesso. A `null` (due umani sullo stesso schermo) resta
  * neutra sulla velocità: la soglia è la stessa per tutti, la chance no.
  */
-function updateGiostra(m, focusIndex) {
+export function updateGiostra(m, focusIndex) {
   const rpm = giriAlMinuto(m.omega);
   const soglia = sogliaSicura();
   const scala = giriAlMinuto(TUNING.SOTTO_WILD_OMEGA);
@@ -319,7 +343,7 @@ function updateCommandStates(rt, goalDir, hintEl, panelEl = document) {
   }
 }
 
-function showOutcome(m, factions, humans, duo, onContinue) {
+export function showOutcome(m, factions, humans, duo, onContinue) {
   const overlay = $('match-overlay');
   const { winnerIndex, reason } = m.outcome;
 
@@ -368,7 +392,7 @@ function formatTime(sec) {
 }
 
 /** Converte #rrggbb in rgba con alpha. */
-function hexA(hex, a) {
+export function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }

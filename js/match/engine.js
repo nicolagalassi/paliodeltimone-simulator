@@ -537,9 +537,11 @@ export function step(m, dt, cmdA, cmdB) {
 
     /* --- avvio del sotto --- */
     if (cmd.type === 'sotto' && rt.sottoCooldown <= 0) {
-      const chance = sottoChance(m, i);
+      // Una chiamata può portare con sé due modificatori (le carte della tirata
+      // a carte): `sure` rende il passaggio certo, `fast` ne accorcia la durata.
+      const chance = cmd.sure ? 1 : sottoChance(m, i);
       rt.sottoOk = m.rng() < chance;
-      rt.sottoTimer = team.sottoTime * (rt.sottoOk ? 1 : TUNING.SOTTO_FAIL_MULT);
+      rt.sottoTimer = team.sottoTime * (cmd.fast ?? 1) * (rt.sottoOk ? 1 : TUNING.SOTTO_FAIL_MULT);
       rt.sottoCooldown = rt.sottoTimer + TUNING.SOTTO_COOLDOWN;
       rt.torque = 0;
       rt.lastCmd = 'sotto';
@@ -548,7 +550,7 @@ export function step(m, dt, cmdA, cmdB) {
 
     /* --- freno giostra --- */
     if (cmd.type === 'brake') {
-      const p = team.power.brake * staminaFactor(rt.stamina) * team.heaviness;
+      const p = team.power.brake * staminaFactor(rt.stamina) * team.heaviness * (cmd.boost ?? 1);
       viscous += TUNING.FRICTION_VISCOUS * TUNING.BRAKE_VISCOUS_MULT * p * 0.5 * fs;
       staticFric += TUNING.BRAKE_STATIC * p * fs;
 
@@ -590,8 +592,10 @@ export function step(m, dt, cmdA, cmdB) {
     // La coppia di spinta/tirata: Forza degli Esterni × peso della rosa. È il
     // confronto di potenza, e qui la squadra più forte e più pesante spinge di
     // più — nettamente, non di un'inezia.
+    // `boost` è il modificatore di una carta (Spallata, Strappo, chiamata
+    // eseguita male); senza carte vale 1 e la coppia è quella di sempre.
     const effort = team.forceFactor[kind] * team.weightFactor
-      * staminaFactor(rt.stamina) * surge * gain;
+      * staminaFactor(rt.stamina) * surge * gain * (cmd.boost ?? 1);
     const t = TUNING.BASE_TORQUE * effort * dir;
 
     torque += t;
@@ -599,7 +603,7 @@ export function step(m, dt, cmdA, cmdB) {
     rt.lastCmd = kind;
 
     const drain = TUNING.DRAIN_PUSH * (0.7 + 0.3 * team.heaviness) * team.drainMult
-      * (pulling ? TUNING.PULL_DRAIN_MULT : 1);
+      * (pulling ? TUNING.PULL_DRAIN_MULT : 1) * (cmd.drain ?? 1);
     rt.stamina = Math.max(0, rt.stamina - drain * m.timeScale * dt);
   }
 
@@ -684,6 +688,30 @@ export function advance(m, elapsed, getCmdA, getCmdB, acc = 0) {
     budget -= TUNING.STEP;
   }
   return budget;
+}
+
+/**
+ * Chiude la tirata allo scadere se non è già finita. Serve a chi la fa avanzare
+ * a blocchi (le battute della tirata a carte): la somma dei passi può fermarsi
+ * a un soffio dalla durata e lasciare il match aperto per un errore di virgola.
+ */
+export function endOnTime(m) {
+  if (!m.finished) finishOnTime(m);
+  return m.outcome;
+}
+
+/**
+ * Copia indipendente dello stato di un match, per guardare avanti senza toccare
+ * quello vero: è così che il Chiamatore della tirata a carte prova le sue carte
+ * prima di giocarle. Squadre e preset sono immutabili e restano condivisi.
+ */
+export function cloneMatch(m, rng = m.rng) {
+  return {
+    ...m,
+    rng,
+    rt: m.rt.map((r) => ({ ...r })),
+    outcome: m.outcome ? { ...m.outcome } : null,
+  };
 }
 
 /** Simulazione headless completa: nessun rendering, stesso motore. */

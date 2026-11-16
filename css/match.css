@@ -172,6 +172,7 @@
   gap: 1rem;
   align-items: flex-start;
 }
+.commands-area[hidden] { display: none; }
 .cmd-player {
   flex: 1;
   min-width: 0;
@@ -238,3 +239,98 @@
 .cmd.is-active em { color: rgba(42, 32, 19, 0.7); }
 .cmd.is-active kbd { background: rgba(255, 255, 255, 0.35); color: #2a2013; border-color: rgba(0, 0, 0, 0.2); }
 .cmd.is-cooling { opacity: 0.45; }
+
+/* ============ tirata a carte ============ */
+.hud-battuta { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); }
+.hud-battuta b { color: var(--sand); }
+.hud-battuta[hidden] { display: none; }
+
+.hand-area { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: flex-start; }
+.hand-area[hidden] { display: none; }
+.hand-player { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.hand-player[hidden] { display: none; }
+.hand-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.hand-label {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.hand-status { font-size: 0.74rem; color: var(--ink-faint); }
+.hand-status.is-ready { color: var(--ok); }
+.hand-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.45rem; }
+.hand-peek, .card { -webkit-tap-highlight-color: transparent; }
+.hand-peek {
+  align-self: center; border: 1px solid var(--line); border-radius: var(--radius-s);
+  background: var(--bg-elev); color: var(--ink); padding: 0.35rem 0.9rem; cursor: pointer; font-size: 0.8rem;
+}
+.hand-peek[hidden] { display: none; }
+
+.card {
+  --kc: var(--gold);
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 0.18rem;
+  min-height: 92px; padding: 0.55rem 0.35rem 0.5rem;
+  border: 1px solid var(--line); border-top: 3px solid var(--kc); border-radius: var(--radius-s);
+  background: var(--bg-elev); color: var(--ink); text-align: center; cursor: pointer;
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  transition: transform 90ms ease, border-color 90ms ease, background 90ms ease;
+}
+.card:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--kc); }
+.card:disabled { cursor: default; }
+.card-push { --kc: #d8ad4c; }
+.card-pull { --kc: #5b8fd9; }
+.card-sotto { --kc: #a477d6; }
+.card-hold { --kc: #6bbf59; }
+.card-brake { --kc: #8a8170; }
+.card::before { font-size: 1rem; line-height: 1; color: var(--kc); }
+.card[data-type="spinta"]::before { content: "→"; }
+.card[data-type="spallata"]::before { content: "⇒"; }
+.card[data-type="strappo"]::before { content: "←"; }
+.card[data-type="tenuta"]::before { content: "◎"; }
+.card[data-type="sotto"]::before { content: "↻"; }
+.card[data-type="lampo"]::before { content: "↯"; }
+.card[data-type="freno"]::before { content: "■"; }
+.card.is-covered::before { content: none; }
+.card[data-key]::after {
+  content: attr(data-key); position: absolute; top: 4px; right: 6px;
+  font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink-faint);
+}
+.card-role { font-size: 0.58rem; letter-spacing: 0.04em; color: var(--ink-faint); text-transform: uppercase; }
+.card-name { font-size: 0.84rem; }
+.card-effect { font-style: normal; font-size: 0.62rem; color: var(--ink-dim); line-height: 1.25; }
+.card-toward { font-size: 0.56rem; letter-spacing: 0.06em; color: #ff86bd; }
+.card.is-toward { border-color: rgba(233, 30, 120, 0.6); }
+.card.is-chosen { background: linear-gradient(180deg, var(--sand), var(--gold)); color: #2a2013; }
+.card.is-chosen .card-effect, .card.is-chosen .card-role { color: rgba(42, 32, 19, 0.75); }
+.card.is-covered {
+  justify-content: center;
+  background: repeating-linear-gradient(45deg, var(--bg-elev-2) 0 6px, var(--bg-elev) 6px 12px);
+  border-top-color: var(--line);
+}
+.card.is-covered.is-chosen { outline: 2px solid var(--ok); outline-offset: -2px; }
+.card-back { font-size: 1.2rem; color: var(--line); }
+
+/* Le due carte scoperte, in basso sul campo: la zona è in alto e va lasciata libera. */
+.battuta-reveal {
+  position: absolute; left: 50%; bottom: 0.6rem; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 0.7rem;
+  background: rgba(18, 16, 13, 0.88); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 0.4rem 0.8rem; box-shadow: var(--shadow); pointer-events: none; max-width: 94%;
+}
+.battuta-reveal[hidden] { display: none; }
+.reveal-side { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.reveal-who { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tc); }
+.reveal-side strong { font-size: 0.95rem; }
+.reveal-misfire { font-style: normal; font-size: 0.62rem; color: var(--danger); }
+.reveal-vs { font-size: 0.66rem; color: var(--ink-faint); }
+
+.battuta-log {
+  flex-basis: 100%; list-style: none; margin: 0; padding: 0;
+  display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: thin;
+}
+.battuta-log li {
+  flex: none; display: flex; gap: 0.3rem; align-items: baseline;
+  font-size: 0.66rem; color: var(--ink-faint);
+  border: 1px solid var(--line-soft); border-radius: var(--radius-s); padding: 0.15rem 0.45rem;
+}
+.battuta-log li b { font-family: var(--font-mono); color: var(--ink-dim); }
+.battuta-log li span { color: var(--tc); }
