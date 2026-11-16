@@ -36,6 +36,24 @@ sequenze si scoprono insieme e il motore fisico gioca la battuta sul campo.
 Nessuno vede la mossa dell'altro prima di aver chiamato la propria: si vince
 prevedendo, non reagendo.
 
+### Il campo e il duello
+
+La piazza è disegnata in **pixel art**, vista di tre quarti: il timone di legno
+con la sua ombra, la Zona Palio in fondo sotto il drappo, il pubblico attorno.
+I tiratori cambiano posa secondo la carta che la squadra sta giocando — chini
+nella spinta, sbilanciati all'indietro nella tirata, piantati nel freno,
+accucciati nel sotto — e frecce a terra mostrano il verso e la forza della
+spinta di ciascuno. La bandiera del palo che conta è più alta, con la punta
+bianca.
+
+Sotto il campo c'è il **duello**: le due sequenze scoperte, una riga per
+squadra, allineate sui cinque secondi della battuta. Mentre il motore gioca, un
+cursore scorre e accende la carta che ognuno sta giocando in quel momento —
+così si vede che cosa si scontra con che cosa. A fine battuta il duello resta in
+vista per tutta la scelta successiva, con i **gradi** di cui ciascuno ha
+avvicinato (o allontanato) il proprio palo alla Zona Palio. La battuta scorre
+al tempo vero.
+
 ### Energia e tempo
 
 Ogni battuta hai **4 energia** e **5 secondi**. Ogni carta ha un costo in
@@ -149,7 +167,7 @@ poi `http://localhost:8000`.
 js/
 ├── core/      stato, PRNG seedabile, formazione, calendario e classifica
 ├── data/      i quartieri
-├── match/     engine (fisica pura), renderer, HUD
+├── match/     engine (fisica pura), renderer in pixel art, HUD
 ├── cards/     carte ed energia, bonus, battuta, IA, sessione, tirata giocata
 └── ui/        schermate, bonus e mazzi, calendario
 ```

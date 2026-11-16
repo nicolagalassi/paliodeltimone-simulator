@@ -149,12 +149,25 @@
   </div>
 
   <div class="arena">
-    <canvas id="field"></canvas>
-    <!-- Le due chiamate scoperte insieme, in basso sul campo. -->
-    <div class="battuta-reveal" id="battuta-reveal" hidden>
-      <div class="reveal-side reveal-a" id="reveal-a"></div>
-      <span class="reveal-vs">contro</span>
-      <div class="reveal-side reveal-b" id="reveal-b"></div>
+    <div class="field-box"><canvas id="field"></canvas></div>
+    <!-- Il duello: le due chiamate scoperte, una sopra l'altra e allineate
+         secondo per secondo, con il cursore che scorre mentre si giocano. Fra
+         una battuta e l'altra resta lì, con i gradi guadagnati o persi. -->
+    <div class="duel" id="duel">
+      <div class="duel-head">
+        <span class="duel-title" id="duel-title">Le chiamate</span>
+        <span class="duel-note" id="duel-note">si scoprono qui, una sopra l'altra, secondo per secondo</span>
+      </div>
+      <div class="duel-grid">
+        <span class="duel-who" id="duel-who-a">—</span>
+        <div class="duel-track" id="duel-track-a"></div>
+        <span class="duel-delta" id="duel-delta-a"></span>
+        <span class="duel-who" id="duel-who-b">—</span>
+        <div class="duel-track" id="duel-track-b"></div>
+        <span class="duel-delta" id="duel-delta-b"></span>
+        <div class="duel-scale" aria-hidden="true"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5 s</span></div>
+        <div class="duel-playhead" id="duel-playhead" aria-hidden="true"></div>
+      </div>
     </div>
     <div class="pause-overlay" id="pause-overlay" hidden>
       <div class="overlay-card">

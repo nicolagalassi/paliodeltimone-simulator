@@ -131,18 +131,28 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+/* Il riquadro del campo prende tutto lo spazio che resta. Il canvas lo misura e
+   ci si adatta da solo (vedi renderer.js): in pixel art l'ingrandimento deve
+   essere un numero intero, quindi la misura la decide lui, non il CSS. */
+.field-box {
+  position: relative;
+  flex: 1;
+  min-height: 120px;
   display: grid;
   place-items: center;
-  /* L'arena è un contenitore: il campo, rotondo, si adatta al lato più corto
-     dello spazio che gli resta, in larghezza come in altezza. */
-  container-type: size;
+  overflow: hidden;
 }
 #field {
-  width: min(100cqw, 100cqh);
-  aspect-ratio: 1;
-  border-radius: 50%;
+  display: block;
+  border-radius: 10px;
   box-shadow: var(--shadow);
   touch-action: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .match-overlay {
@@ -275,20 +285,93 @@
 .card-back { font-size: 1.2rem; color: var(--line); }
 
 /* Le due sequenze scoperte, in basso sul campo: la zona è in alto e va lasciata libera. */
-.battuta-reveal {
-  position: absolute; left: 50%; bottom: 0.6rem; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 0.7rem;
-  background: rgba(18, 16, 13, 0.9); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 0.4rem 0.8rem; box-shadow: var(--shadow); pointer-events: none; max-width: 96%;
+/* ---- il duello: le due sequenze allineate sul tempo della battuta ---- */
+.duel {
+  flex: none;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem 0.3rem;
 }
-.battuta-reveal[hidden] { display: none; }
-.reveal-side { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.reveal-who { font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tc); }
-.reveal-seq { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0.25rem; }
-.reveal-seq strong { font-size: 0.9rem; }
-.reveal-seq .is-misfire { color: var(--danger); }
-.reveal-arrow, .reveal-none { font-size: 0.7rem; color: var(--ink-faint); font-style: normal; }
-.reveal-vs { font-size: 0.66rem; color: var(--ink-faint); }
+.duel-head {
+  display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.3rem;
+  font-size: 0.7rem; color: var(--ink-faint); min-width: 0;
+}
+.duel-title {
+  font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink);
+  white-space: nowrap;
+}
+.duel-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 1fr) 4.2rem;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.duel-who {
+  font-size: 0.74rem; font-weight: 600; color: var(--tc, var(--ink));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.duel-you { font-weight: 400; color: var(--ink-faint); }
+.duel-track {
+  display: flex; gap: 2px; height: 1.7rem; min-width: 0;
+  border-radius: 6px; overflow: hidden;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 1px), var(--line) calc(20% - 1px) 20%);
+}
+.duel-block {
+  flex-basis: 0; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 600; color: #1a150f;
+  background: var(--kc, #a99a80);
+  border-radius: 4px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  opacity: 0.55;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.duel-block.is-past { opacity: 0.8; }
+.duel-block.is-now { opacity: 1; box-shadow: inset 0 0 0 2px #fff; }
+.duel-block.is-misfire {
+  background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.28) 0 4px, transparent 4px 8px);
+}
+.duel-block.is-free {
+  background: transparent; color: var(--ink-faint); font-weight: 400; font-style: italic;
+  border: 1px dashed var(--line);
+}
+.duel-block.is-free.is-now { box-shadow: inset 0 0 0 1px var(--ink-faint); }
+.duel-delta {
+  font-size: 0.78rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
+  color: var(--ink-faint);
+}
+.duel-delta.is-gain { color: var(--ok); }
+.duel-delta.is-loss { color: var(--danger); }
+.duel-delta.is-zone { color: var(--gold); }
+/* Posti fissi nella griglia: il cursore, che sta sopra le due tracce, non deve
+   spingere fuori posto il resto. */
+#duel-who-a { grid-area: 1 / 1; }
+#duel-track-a { grid-area: 1 / 2; }
+#duel-delta-a { grid-area: 1 / 3; }
+#duel-who-b { grid-area: 2 / 1; }
+#duel-track-b { grid-area: 2 / 2; }
+#duel-delta-b { grid-area: 2 / 3; }
+.duel-scale {
+  grid-area: 3 / 2; display: flex; justify-content: space-between;
+  font-size: 0.55rem; color: var(--ink-faint); line-height: 1;
+}
+/* Il cursore scorre sulla colonna delle tracce, sopra entrambe le righe. */
+.duel-playhead {
+  grid-area: 1 / 2 / 3 / 3; align-self: stretch; justify-self: stretch;
+  position: relative; pointer-events: none;
+  --p: 0;
+}
+.duel-playhead::before {
+  content: ""; position: absolute; top: -3px; bottom: -3px;
+  left: calc(var(--p) * 100%); width: 2px; margin-left: -1px;
+  background: #fff; box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  border-radius: 1px;
+}
+.duel.is-idle .duel-playhead { display: none; }
 
 .battuta-log {
   flex-basis: 100%; list-style: none; margin: 0; padding: 0;

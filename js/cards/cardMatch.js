@@ -4,8 +4,12 @@
  * A ogni battuta il ciclo è sempre lo stesso:
  *   1. si pesca, si ricarica l'energia, e l'IA sceglie la sua sequenza — coperta;
  *   2. ogni Chiamatore umano mette in fila le sue carte, entro energia e tempo;
- *   3. le sequenze si scoprono insieme (e si vede se qualche chiamata esce a metà);
- *   4. il motore gioca i cinque secondi della battuta, animati sul campo;
+ *   3. le sequenze si scoprono insieme (e si vede se qualche chiamata esce a metà),
+ *      una sopra l'altra e allineate secondo per secondo: il "duello";
+ *   4. il motore gioca i cinque secondi della battuta, animati sul campo, mentre
+ *      un cursore scorre sul duello e accende la carta che ciascuno sta giocando;
+ *      finita la battuta il duello resta lì, con i gradi guadagnati o persi, per
+ *      tutta la scelta della battuta dopo.
  *   5. chi ha accumulato abbastanza secondi in zona sceglie un bonus.
  *
  * Nessuno vede le carte dell'altro prima di aver chiamato le proprie: è questo,
@@ -13,7 +17,7 @@
  */
 
 import { getFaction } from '../data/factions.js';
-import { endOnTime } from '../match/engine.js';
+import { endOnTime, teamDistance } from '../match/engine.js';
 import { createRenderer } from '../match/renderer.js';
 import {
   prepareHud, updateHud, updateGiostra, showOutcome, showEnergy,
@@ -27,10 +31,11 @@ import { renderBonusChoice } from '../ui/bonusUI.js';
 
 const $ = (id) => document.getElementById(id);
 
-/** La battuta scorre un po' più veloce del vero: cinque secondi sono tanti da guardare. */
-const PLAYBACK_SPEED = 1.3;
-/** Quanto restano scoperte le due sequenze prima che parta la battuta. */
-const REVEAL_MS = 1300;
+/** La battuta scorre al tempo vero: deve potersi seguire carta per carta. */
+const PLAYBACK_SPEED = 1;
+/** Quanto restano scoperte le due sequenze, ferme, prima che parta la battuta. */
+const REVEAL_MS = 1700;
+const DEG = 180 / Math.PI;
 
 const sideOf = (playerNo) => (playerNo === 2 ? 'b' : 'a');
 const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
@@ -80,7 +85,6 @@ export function playCardMatch({
 
     /* ---- la schermata ---- */
     $('hud-battuta-tot').textContent = battute;
-    $('battuta-reveal').hidden = true;
     $('bonus-overlay').hidden = true;
     $('battuta-log').replaceChildren();
     $('screen-match').classList.toggle('is-hotseat', hotseat);
@@ -95,6 +99,7 @@ export function playCardMatch({
 
     const els = prepareHud({ factions, colors, humans, duo, hold, title });
     const renderer = createRenderer($('field'));
+    const duel = createDuel();
     renderer.resize();
     const giostraFocus = humans.length === 1 ? humans[0].index : null;
 
@@ -107,10 +112,14 @@ export function playCardMatch({
     function frame(now) {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (running && !paused && running.runner.advance(dt * PLAYBACK_SPEED)) {
-        const { done } = running;
-        running = null;
-        done();
+      if (running && !paused) {
+        const over = running.runner.advance(dt * PLAYBACK_SPEED);
+        duel.progress(running.runner.progress);
+        if (over) {
+          const { done } = running;
+          running = null;
+          done();
+        }
       }
       renderer.draw(m, colors, now);
       updateHud(m, els, m.preset, factions, colors);
@@ -300,19 +309,112 @@ export function playCardMatch({
 
     /* ================= rivelazione, registro, bonus ================= */
 
-    function revealSide(el, seq, i, misfire) {
-      el.replaceChildren();
-      el.style.setProperty('--tc', colors[i]);
-      el.append(node('span', 'reveal-who', factions[i].name));
-      const line = node('span', 'reveal-seq');
-      if (!seq.length) line.append(node('em', 'reveal-none', 'solo presa'));
-      seq.forEach((c, k) => {
-        if (k) line.append(node('span', 'reveal-arrow', '→'));
-        const s = node('strong', misfire[k] ? 'is-misfire' : null, nameOf(c) + (misfire[k] ? '½' : ''));
-        if (misfire[k]) s.title = 'la squadra segue a metà';
-        line.append(s);
+    /**
+     * Il duello: le due sequenze scoperte, una riga per squadra, sulla stessa
+     * scala dei cinque secondi. Così si vede che cosa si scontra con che cosa —
+     * la mia Spinta contro la sua Tirata nel secondo 2 — e, a fine battuta,
+     * quanto ha reso: i gradi di cui ciascuno ha avvicinato (o allontanato) il
+     * proprio palo all'arco.
+     */
+    function createDuel() {
+      const root = $('duel');
+      const sides = ['a', 'b'];
+      let segs = [[], []];
+      let before = [0, 0];
+
+      sides.forEach((x, i) => {
+        const who = $(`duel-who-${x}`);
+        const h = humans.find((u) => u.index === i);
+        who.replaceChildren(factions[i].name);
+        if (h) who.append(node('span', 'duel-you', duo ? ` G${h.playerNo}` : ' (tu)'));
+        who.style.setProperty('--tc', colors[i]);
+        $(`duel-track-${x}`).replaceChildren();
+        $(`duel-delta-${x}`).textContent = '';
+        $(`duel-delta-${x}`).className = 'duel-delta';
       });
-      el.append(line);
+      $('duel-title').textContent = 'Le chiamate';
+      $('duel-note').textContent = 'si scoprono qui, una sopra l\'altra, secondo per secondo';
+      root.classList.add('is-idle');
+
+      function head(title, note) {
+        $('duel-title').textContent = title;
+        $('duel-note').textContent = note;
+      }
+
+      /** Mette in pista le sequenze appena scoperte; il cursore torna a zero. */
+      function show(rev) {
+        before = [0, 1].map((i) => teamDistance(m, i));
+        segs = rev.seqs.map((seq, i) => {
+          const track = $(`duel-track-${sides[i]}`);
+          const out = [];
+          let at = 0;
+          seq.forEach((c, k) => {
+            const t = CARD_TYPES[c.type];
+            const half = rev.misfire[i][k];
+            const el = node('span', `duel-block card-${t.kind}${half ? ' is-misfire' : ''}`, t.name + (half ? ' ½' : ''));
+            el.style.flexGrow = t.dur;
+            el.title = `${t.name} · ${t.dur} s${half ? ' — eseguita a metà' : ''}`;
+            out.push({ el, start: at, end: at + t.dur });
+            at += t.dur;
+          });
+          if (at < BATTUTA_SECONDS - 1e-9) {
+            const el = node('span', 'duel-block is-free', seq.length ? 'presa' : 'solo presa');
+            el.style.flexGrow = BATTUTA_SECONDS - at;
+            el.title = 'presa passiva: la squadra tiene ma non spinge';
+            out.push({ el, start: at, end: BATTUTA_SECONDS });
+          }
+          track.replaceChildren(...out.map((g) => g.el));
+          const d = $(`duel-delta-${sides[i]}`);
+          d.textContent = '';
+          d.className = 'duel-delta';
+          return out;
+        });
+        root.classList.remove('is-idle');
+        head(`Battuta ${rev.battuta}`, rev.misfire.some((f) => f.some(Boolean))
+          ? 'scoperte · ½ = la squadra segue a metà'
+          : 'scoperte · ecco che cosa ha chiamato ciascuno');
+        progress(0);
+      }
+
+      /** Il cursore a `p` (0…1 della battuta): accende la carta in corso e aggiorna i gradi. */
+      function progress(p) {
+        const t = p * BATTUTA_SECONDS;
+        $('duel-playhead').style.setProperty('--p', p.toFixed(4));
+        for (const out of segs) {
+          for (const g of out) {
+            g.el.classList.toggle('is-now', p > 0 && p < 1 && t >= g.start && t < g.end);
+            g.el.classList.toggle('is-past', p >= 1 || t >= g.end);
+          }
+        }
+        if (p > 0) deltas();
+      }
+
+      function deltas() {
+        [0, 1].forEach((i) => {
+          const d = $(`duel-delta-${sides[i]}`);
+          const now = teamDistance(m, i);
+          if (now <= 0) {
+            d.textContent = 'in zona';
+            d.className = 'duel-delta is-zone';
+            d.title = 'il palo è nell\'arco della Zona Palio';
+            return;
+          }
+          const gain = (before[i] - now) * DEG;
+          const r = Math.round(gain);
+          d.textContent = r === 0 ? '±0°' : `${r > 0 ? '+' : '−'}${Math.abs(r)}°`;
+          d.className = `duel-delta${r > 0 ? ' is-gain' : r < 0 ? ' is-loss' : ''}`;
+          d.title = `${r >= 0 ? 'avvicinato' : 'allontanato'} di ${Math.abs(r)}° il proprio palo alla Zona Palio`
+            + ` · ora a ${Math.round(now * DEG)}°`;
+        });
+      }
+
+      /** Battuta giocata: il duello resta in vista mentre si sceglie la prossima. */
+      function settle(n) {
+        progress(1);
+        head(`Battuta ${n} · com'è andata`, 'gradi verso la Zona Palio · resta qui mentre scegli');
+      }
+
+      return { show, progress, settle };
     }
 
     function logLine(parts) {
@@ -387,20 +489,18 @@ export function playCardMatch({
         session.begin();
         showEnergy(els, session.energy);
         $('hud-battuta-n').textContent = session.battuta + 1;
-        $('battuta-reveal').hidden = true;
 
         const chosen = await Promise.all(humans.map((h) => buildSequence(h)));
         const picks = [null, null];
         humans.forEach((h, k) => { picks[h.index] = chosen[k]; });
 
         const rev = session.reveal(picks);
-        revealSide($('reveal-a'), rev.seqs[0], 0, rev.misfire[0]);
-        revealSide($('reveal-b'), rev.seqs[1], 1, rev.misfire[1]);
-        $('battuta-reveal').hidden = false;
+        duel.show(rev);
         logBattuta(rev);
         await sleep(REVEAL_MS);
 
         await new Promise((done) => { running = { runner: session.runner(rev.plans), done }; });
+        duel.settle(rev.battuta);
         session.next();
         await settleBonuses();
       }
@@ -412,6 +512,7 @@ export function playCardMatch({
     function finish() {
       showOutcome(m, factions, humans, duo, () => {
         cancelAnimationFrame(raf);
+        renderer.destroy();
         window.removeEventListener('keydown', onPauseKey);
         document.title = 'Palio del Timone — Simulatore';
         resolve(toResult(m.outcome));
