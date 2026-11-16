@@ -62,6 +62,10 @@ body:has(#screen-match:not([hidden])) {
   .faction-card::after { width: 120px; height: 120px; }
 
   .preset-options { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  #mode-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+  #mode-options .preset-btn { padding: 0.5rem 0.35rem; }
+  #mode-options .preset-btn strong { font-size: 0.86rem; }
+  #mode-options .preset-btn span { font-size: 0.72rem; line-height: 1.2; }
   .screen-foot .btn { flex: 1; }
 
   /* ---- bonus: tre righe compatte ---- */

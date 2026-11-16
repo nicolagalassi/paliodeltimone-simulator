@@ -115,8 +115,10 @@ export function createRenderer(canvas) {
   function resize() {
     // Il canvas occupa il riquadro del suo contenitore (o, in mancanza, il suo).
     const box = (canvas.parentElement || canvas).getBoundingClientRect();
-    const cssW = Math.max(1, Math.floor(box.width));
-    const cssH = Math.max(1, Math.floor(box.height));
+    // Si lascia un margine per la cornice, disegnata fuori dal canvas.
+    const FRAME = 18;
+    const cssW = Math.max(1, Math.floor(box.width) - FRAME);
+    const cssH = Math.max(1, Math.floor(box.height) - FRAME);
     const key = `${cssW}x${cssH}`;
     if (key === cssKey && bg) return;
     cssKey = key;

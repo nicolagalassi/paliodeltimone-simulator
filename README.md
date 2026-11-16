@@ -1,9 +1,20 @@
 # Palio del Timone — Simulatore
 
-Il **Palio del Timone** come gioco di carte tattico: si sceglie un quartiere e
-si disputa un torneo fra i quattro, chiamando le tirate a carte coperte. Ogni
-secondo passato nella Zona Palio vale un passo verso un nuovo bonus, e i bonus
-restano per tutto il torneo.
+Il **Palio del Timone** come gioco di carte tattico: si sceglie un quartiere e si
+chiamano le tirate a carte coperte. Due modi di giocarlo:
+
+- **Il Cammino del Palio** (1 giocatore) — una run roguelike: una mappa a bivi
+  di tirate, eventi, botteghe e osterie che sale fino al Palio, con tre cuori da
+  non perdere;
+- **Il Torneo** (1 o 2 giocatori) — girone all'italiana fra i quattro quartieri
+  e finali.
+
+In entrambi ogni secondo passato nella Zona Palio vale un passo verso un nuovo
+bonus, e i bonus restano per tutta la run.
+
+La grafica è quella di un codice miniato: pagine di pergamena, sigilli di
+ceralacca, capitali in Cinzel e testo in EB Garamond. Il campo, in pixel art,
+sta incorniciato come una miniatura.
 
 Nessuna dipendenza, nessun passo di build: HTML, CSS e moduli ES nativi.
 
@@ -19,6 +30,34 @@ suo chiamatore.
 | San Giovanni | Blu | aggressivo: spinge e carica |
 | Bolognano | Arancione | agile: passa sotto e rimescola |
 | Meletolo | Verde | metodico: tiene e frena |
+
+### Il Cammino del Palio
+
+Si parte con il mazzo base, un primo bonus a scelta e **tre cuori**. La mappa ha
+nove righe di tappe, dal basso verso l'alto; da ogni tappa partono uno o due
+sentieri verso la riga dopo, e si sceglie quale prendere.
+
+| Tappa | Che cosa succede |
+|---|---|
+| ⚔ **Tirata** | Contro un quartiere rivale. Vinta: 15 fiorini. Persa: un cuore. |
+| ☠ **Rivale** | Un avversario con più bonus. Vinta: 30 fiorini e un bonus a scelta. |
+| ? **Evento** | Un incontro in piazza con una scelta: il vecchio tiratore, la scommessa, il vino del Moro… |
+| ⚖ **Bottega** | Tre bonus in vendita (35 fiorini le carte, 50 gli effetti), togliere una carta, un cuore. |
+| ✦ **Allenamento** | Si toglie una carta dal mazzo, o se ne raddoppia una. |
+| ♨ **Osteria** | Si recupera un cuore, o si toglie una carta. |
+| ★ **Il Palio** | In cima: la tirata finale contro il rivale storico, scelto a inizio run. |
+
+Prima di ogni tirata si vede il **mazzo dell'avversario** e i suoi effetti, così
+si può preparare la strategia. Gli avversari crescono salendo la mappa: più bonus
+nella riga alta, di più per i rivali, otto per chi aspetta al Palio. Il mazzo non
+scende mai sotto le sette carte.
+
+Senza cuori il cammino finisce; vincendo il Palio, la run è vinta. Il cammino si
+salva a ogni passo e si riprende dalla schermata iniziale. Misurato in
+simulazione, un chiamatore forte quanto l'IA vince il Palio poco più di una run
+su due.
+
+### Il Torneo
 
 Girone all'italiana andata e ritorno, poi finale 3°/4° e finale 1°/2° posto.
 
@@ -138,8 +177,7 @@ sposta il timone più di quella di un Interno, e il peso della squadra è spinta
 
 ### Due giocatori
 
-Sulla schermata iniziale si sceglie **1 giocatore** (tu contro le tre IA) o
-**2 giocatori** sullo stesso schermo: ciascuno sceglie il proprio quartiere e il
+Sulla schermata iniziale si sceglie **Torneo in due**, sullo stesso schermo: ciascuno sceglie il proprio quartiere e il
 proprio primo bonus, gli altri due quartieri restano all'IA. Quando i due umani
 si affrontano, ogni mano resta **coperta** finché il suo proprietario non la
 guarda.
@@ -166,10 +204,11 @@ poi `http://localhost:8000`.
 ```
 js/
 ├── core/      stato, PRNG seedabile, formazione, calendario e classifica
+├── run/       il Cammino: mappa a bivi, regole della run, svolgimento delle tappe
 ├── data/      i quartieri
 ├── match/     engine (fisica pura), renderer in pixel art, HUD
 ├── cards/     carte ed energia, bonus, battuta, IA, sessione, tirata giocata
-└── ui/        schermate, bonus e mazzi, calendario
+└── ui/        schermate, bonus e mazzi, calendario, mappa e scene del Cammino
 ```
 
 Il motore in `js/match/engine.js` non tocca il DOM, e nemmeno la sessione delle
@@ -182,5 +221,6 @@ Le costanti fisiche stanno in `TUNING` in cima a `engine.js`; energia, carte e
 mazzo base in `js/cards/cards.js`; i bonus in `js/cards/bonus.js`. Il PRNG è
 seedabile: a parità di seme, calendario ed esiti sono riproducibili.
 
+Il Cammino ha un suo formato di salvataggio (`kind: 'cammino'`, versione 5).
 I tornei salvati con le versioni precedenti (rose scelte a mano e tirata in
 tempo reale) non si possono riprendere.

@@ -1,5 +1,6 @@
 /**
- * Bootstrap: scelta del quartiere → primo bonus → torneo → tirate.
+ * Bootstrap: scelta del quartiere e della modalità → primo bonus → Cammino del
+ * Palio (roguelike, vedi run/flow.js) oppure torneo → tirate.
  *
  * Il torneo è una run: tutte le squadre partono uguali, con lo stesso mazzo, e
  * crescono con i bonus guadagnati nella Zona Palio. Mazzo e bonus di ciascun
@@ -22,6 +23,7 @@ import { renderBonusChoice, deckList } from './ui/bonusUI.js';
 import { buildTeam } from './match/match.js';
 import { playCardMatch } from './cards/cardMatch.js';
 import { simulateCardFixture } from './cards/cardSim.js';
+import { startCammino, resumeCammino } from './run/flow.js';
 import { BASE_DECK } from './cards/cards.js';
 import {
   newLoadout, grantBonus, offerBonuses, aiPickBonus,
@@ -31,7 +33,7 @@ const $ = (id) => document.getElementById(id);
 
 let selectedFaction = null;
 let selectedPreset = 'rapida';
-let selectedMode = 'single';       // 'single' | 'duo'
+let selectedMode = 'cammino';      // 'cammino' | 'single' | 'duo'
 let picks = [];                    // quartieri scelti dagli umani, in ordine di giocatore
 
 /** Come chiama un quartiere quando lo si affronta. */
@@ -70,8 +72,10 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
 
     const bonus = el('div', 'faction-bonus');
     bonus.append(el('strong', null, STYLE_LABEL[f.aiStyle] ?? ''), el('div', null, f.motto));
+    const crest = el('div', 'faction-crest');
+    crest.dataset.initial = f.name.split(' ').map((w) => w[0]).join('');
     card.append(
-      el('div', 'faction-crest'),
+      crest,
       el('div', 'faction-name', f.name),
       el('div', 'faction-color', f.colorName),
       bonus,
@@ -99,8 +103,13 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
   resume.hidden = !save;
   if (save) {
     const who = save.humans.map((id) => getFaction(id).name).join(' e ');
-    resume.textContent = `Riprendi torneo · ${who}`;
-    resume.onclick = () => { setState(save, { save: false }); goToTournament(); };
+    if (save.kind === 'cammino') {
+      resume.textContent = `Riprendi il cammino · ${who}`;
+      resume.onclick = () => resumeCammino(save, backToStart);
+    } else {
+      resume.textContent = `Riprendi torneo · ${who}`;
+      resume.onclick = () => { setState(save, { save: false }); goToTournament(); };
+    }
   }
 
   $('btn-faction-confirm').onclick = () => {
@@ -163,6 +172,16 @@ function chooseFirstBonus({ factionId, playerNo, loadout, rng }) {
 async function startRun() {
   const seed = randomSeed();
   const rng = makeRng(seed ^ 0x5bd1e995);
+
+  if (selectedMode === 'cammino') {
+    const loadout = newLoadout(BASE_DECK);
+    grantBonus(loadout, await chooseFirstBonus({ factionId: picks[0], playerNo: 1, loadout, rng }));
+    startCammino({
+      seed, presetId: selectedPreset, factionId: picks[0], loadout, exit: backToStart,
+    });
+    return;
+  }
+
   const run = {};
   for (const id of ALL_FACTION_IDS) {
     run[id] = newLoadout(BASE_DECK);

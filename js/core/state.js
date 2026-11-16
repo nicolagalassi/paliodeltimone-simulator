@@ -5,7 +5,8 @@
  */
 
 const SAVE_KEY = 'pdt.save.v2';
-const VERSION = 4;
+const VERSION = 4;           // torneo
+const CAMMINO_VERSION = 5;   // cammino del palio
 
 /**
  * I due formati della tirata: quante battute da cinque secondi, e quanti
@@ -103,7 +104,10 @@ export function loadSave() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== VERSION || !parsed.schedule || !parsed.run) return null;
+    if (!parsed) return null;
+    // Il Cammino ha un suo formato (vedi run/cammino.js).
+    if (parsed.kind === 'cammino') return parsed.version === CAMMINO_VERSION && parsed.map ? parsed : null;
+    if (parsed.version !== VERSION || !parsed.schedule || !parsed.run) return null;
     return parsed;
   } catch {
     return null;
