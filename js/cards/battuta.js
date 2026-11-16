@@ -19,9 +19,12 @@ export const BATTUTA_STEPS = Math.round(BATTUTA_SECONDS / TUNING.STEP);
  * Gioca una battuta intera senza disegnarla.
  * Se era l'ultima, chiude la tirata allo scadere.
  */
-export function runBattuta(m, planA, planB, battute = Infinity, index = 0) {
-  for (let n = 0; n < BATTUTA_STEPS && !m.finished; n++) {
-    step(m, TUNING.STEP, planA(m, 0), planB(m, 1));
+export function runBattuta(m, planA, planB, battute = Infinity, index = 0, dt = TUNING.STEP) {
+  // `dt` più largo serve al Chiamatore artificiale per guardare avanti in
+  // fretta: i piani vanno creati con lo stesso passo (vedi makeSequencePlan).
+  const steps = Math.round(BATTUTA_SECONDS / dt);
+  for (let n = 0; n < steps && !m.finished; n++) {
+    step(m, dt, planA(m, 0), planB(m, 1));
   }
   if (index + 1 >= battute) endOnTime(m);
 }
@@ -71,7 +74,8 @@ function facingScore(m, k) {
  *
  * Contano, in quest'ordine: chi ha già vinto, la tenuta in corso, la distanza
  * dall'arco (adesso e fra un paio di secondi, se il timone continua a girare
- * così), l'orientamento per la battuta dopo e il fiato. Verso la fine della
+ * così), l'orientamento per la battuta dopo e i secondi accumulati in zona,
+ * che valgono bonus. Verso la fine della
  * tirata la distanza pesa di più, perché allo scadere decide lei.
  */
 export function evaluate(m, i) {
@@ -94,7 +98,8 @@ export function evaluate(m, i) {
   const distTerm = (distNow + 0.6 * distSoon) * 3 * late;
 
   const faceTerm = (facingScore(m, i) - facingScore(m, j)) * 12;
-  const stamTerm = (rt.stamina - rf.stamina) * 28;
+  // Secondi in zona accumulati: ogni BONUS_EVERY valgono un bonus per la run.
+  const zoneTerm = (rt.timeInZone - rf.timeInZone) * 6;
 
-  return holdTerm + distTerm + faceTerm + stamTerm;
+  return holdTerm + distTerm + faceTerm + zoneTerm;
 }

@@ -5,7 +5,8 @@ import { getFaction } from '../data/factions.js';
 import {
   computeStandings, currentDay, allFixtures, finalsFixtures, computePodium,
 } from '../core/tournament.js';
-import { totalWeight, ROLE_BY_ID, ROLE_IDS } from '../core/roster.js';
+import { getPreset } from '../core/state.js';
+import { deckList, effectList } from './bonusUI.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,10 +34,8 @@ function renderHead(state) {
 
   const done = allFixtures(state.schedule).filter((f) => f.played).length;
   const total = allFixtures(state.schedule).length;
-  const long = state.presetId === 'regolamentare';
-  const preset = state.tirata === 'carte'
-    ? `a carte, ${long ? 26 : 18} battute · 8 s`
-    : (long ? '4 min · 10 s' : '2 min · 10 s');
+  const p = getPreset(state);
+  const preset = `${p.battute} battute · ${p.hold} s in zona`;
 
   $('tournament-subtitle').textContent = state.stage === 'done'
     ? 'Torneo concluso.'
@@ -153,31 +152,25 @@ function renderStandings(standings, mine) {
   table.append(body);
 }
 
+/**
+ * Mazzo e bonus di ciascun giocatore: è la sua "squadra" in questa run, quella
+ * che cresce tirata dopo tirata con i secondi passati nella Zona Palio.
+ */
 function renderMySquad(state) {
   const box = clear($('my-squad'));
   const duo = state.mode === 'duo';
 
   state.humans.forEach((id, i) => {
-    const roster = state.teams[id].roster;
+    const loadout = state.run[id];
     const label = duo
-      ? `Giocatore ${i + 1} · ${getFaction(id).name} · ${totalWeight(roster)} kg`
-      : `La tua rosa · ${totalWeight(roster)} kg`;
-    const strong = el('strong', null, label);
-    strong.style.setProperty('--fc', getFaction(id).color);
-    box.append(strong);
-
-    const ul = el('ul');
-    const rank = (r) => ROLE_IDS.indexOf(r);
-    const ordered = roster.slice().sort((a, b) => rank(a.role) - rank(b.role));
-    for (const s of ordered) {
-      const li = el('li');
-      const name = el('span', null, s.name);
-      const role = ROLE_BY_ID[s.role];
-      if (role) name.prepend(el('span', 'role-tag', role.short + ' '));
-      li.append(name, el('span', null, `${s.weight} kg`));
-      ul.append(li);
-    }
-    box.append(ul);
+      ? `Giocatore ${i + 1} · ${getFaction(id).name}`
+      : 'Il tuo mazzo';
+    box.append(el('strong', null, `${label} · ${loadout.deck.length} carte`));
+    box.append(deckList(loadout.deck));
+    const effects = effectList(loadout.bonuses);
+    box.append(el('p', 'squad-effects', effects.length
+      ? `Effetti: ${effects.join(' · ')}`
+      : 'Nessun effetto permanente, per ora.'));
   });
 }
 

@@ -1,105 +1,104 @@
 # Palio del Timone — Simulatore
 
-Simulatore tattico del **Palio del Timone**: si sceglie un quartiere, si compone
-una rosa di sei tiratori sotto il tetto dei 540 kg e si disputa un torneo fra i
-quattro quartieri, chiamando di persona le tirate — a carte coperte o in tempo
-reale.
+Il **Palio del Timone** come gioco di carte tattico: si sceglie un quartiere e
+si disputa un torneo fra i quattro, chiamando le tirate a carte coperte. Ogni
+secondo passato nella Zona Palio vale un passo verso un nuovo bonus, e i bonus
+restano per tutto il torneo.
 
 Nessuna dipendenza, nessun passo di build: HTML, CSS e moduli ES nativi.
 
 ## Il gioco
 
-Quattro quartieri, ciascuno con il proprio bonus:
+Quattro quartieri. Partono tutti uguali, con la stessa formazione e lo stesso
+mazzo: il quartiere è un'identità e, quando lo si affronta, il carattere del
+suo chiamatore.
 
-| Quartiere | Colore | Bonus |
+| Quartiere | Colore | Chiamatore |
 |---|---|---|
-| San Paolo | Rosso | +10% Resistenza |
-| San Giovanni | Blu | +10% Forza |
-| Bolognano | Arancione | +10% Agilità |
-| Meletolo | Verde | +10% Gioco di squadra |
+| San Paolo | Rosso | calcolatore: gioca il colpo giusto |
+| San Giovanni | Blu | aggressivo: spinge e carica |
+| Bolognano | Arancione | agile: passa sotto e rimescola |
+| Meletolo | Verde | metodico: tiene e frena |
 
 Girone all'italiana andata e ritorno, poi finale 3°/4° e finale 1°/2° posto.
-
-### La formazione
-
-Ogni braccio del timone ha tre posizioni, dal perno verso l'esterno. La rosa si
-compone scegliendone **due per posizione**, in sequenza — prima gli Esterni, poi
-i Mediani, poi gli Interni — sempre entro il tetto fisso dei **540 kg**.
-
-| Posizione | Peso | Leva | Nella tirata |
-|---|---|---|---|
-| **Esterno** | il più pesante | lunga | la Forza qui pesa di più sulla coppia |
-| **Mediano** | medio | media | contributo intermedio |
-| **Interno** | il più leggero | corta | leggero e agile, poco braccio |
-
-La posizione è la fascia di peso del tiratore, e la sua **leva** entra nella
-tirata: la Forza di un Esterno, più lontano dal perno, sposta il timone molto
-più di quella di un Interno. La spinta è il confronto di potenza, e qui la
-differenza si vede — una squadra con Esterni fortissimi spinge decisamente di
-più, e **a parità di Forza la squadra più pesante vince** il confronto diretto.
-Una rosa leggera non regge la spinta a viso aperto: deve rifiutarla e giocare la
-giostra. Siccome i pesanti nascono forti e i leggeri agili, le posizioni
-acquistano un'identità — e comporre la formazione diventa scegliere i due
-migliori per fascia invece di bilanciare a mano un budget indistinto.
-
-Ogni tiratore porta anche una **disciplina**, che nasce dal Gioco di squadra:
-oggi la tirata la applica per intero, ma è l'aggancio per un futuro in cui, con
-una squadra poco affiatata, qualcuno possa non rispettare la chiamata.
 
 ### La tirata
 
 Dodici tiratori su una croce imperniata al centro. Ogni squadra occupa due
-bracci opposti; vince chi tiene un proprio braccio nella **Zona Palio** per i
-secondi richiesti, o — a tempo scaduto — chi ha il palo più vicino all'arco.
+bracci opposti; vince chi tiene un proprio braccio nella **Zona Palio** per
+**8 secondi** consecutivi, o — a tempo scaduto — chi ha il palo più vicino
+all'arco.
 
-Il giocatore non muove i tiratori: è il **Chiamatore**. La tirata si chiama in
-due modi, che si scelgono all'avvio del torneo: **a carte** (il modo
-predefinito) o **in tempo reale**. Le regole fisiche sono le stesse; cambia come
-arrivano le chiamate.
+Il giocatore non muove i tiratori: è il **Chiamatore**. La tirata si divide in
+**battute** da cinque secondi — 18 nel formato breve, 26 nel regolamentare. A
+ogni battuta i due Chiamatori mettono in fila le loro carte **coperte**; le
+sequenze si scoprono insieme e il motore fisico gioca la battuta sul campo.
+Nessuno vede la mossa dell'altro prima di aver chiamato la propria: si vince
+prevedendo, non reagendo.
 
-### Tirata a carte
+### Energia e tempo
 
-La tirata si divide in **battute** da cinque secondi — 18 nel formato breve, 26
-nel regolamentare — e per vincere si tiene il palo in zona **8 secondi**. A ogni
-battuta i due Chiamatori scelgono una carta **coperta**; le carte si scoprono
-insieme e il motore gioca la battuta sul campo. Nessuno vede la mossa
-dell'altro prima di aver scelto la propria: si vince prevedendo, non reagendo.
+Ogni battuta hai **4 energia** e **5 secondi**. Ogni carta ha un costo in
+energia e una durata: se ne giocano quante si vuole, **in fila e nell'ordine
+scelto**, finché bastano energia e tempo. Il tempo che avanza è presa passiva:
+la squadra tiene ma non spinge. A fine battuta la mano va negli scarti e se ne
+pescano cinque nuove.
 
-Il **mazzo è la formazione**: ogni tiratore porta due carte del suo ruolo, e la
-loro forza viene dalle sue statistiche. In mano se ne tengono quattro, più il
-Freno che c'è sempre.
+Il **Freno** è sempre in mano: non costa energia, frena per un secondo e fa
+rifiatare — **+1 energia alla battuta dopo**. Si gioca una volta per battuta,
+come il sotto.
 
-| Carta | Da chi | Che cosa fa |
-|---|---|---|
-| **Spinta** | Esterno | Spinta piena per tutta la battuta |
-| **Spallata** | Esterno | Spinta più forte (con la sua Forza), ma brucia molto più fiato |
-| **Tenuta** | Mediano | Riporta il palo al centro dell'arco e lo ferma: la carta di chi è già dentro |
-| **Strappo** | Mediano | Il palo a sé di slancio: forte all'inizio, poi cala |
-| **Sotto** | Interno | Si passa sotto e si riparte spingendo dall'altra parte |
-| **Passaggio lampo** | Interno | Sotto sicuro e più rapido (con la sua Agilità) |
-| **Freno** | sempre in mano | Smorza la giostra e si rifiata |
+### Le carte
 
-Con poco Gioco di squadra una chiamata può uscire **a metà**: è la disciplina
-dei tiratori che entra in campo. Il Chiamatore artificiale non vede la tua
-carta: prova le sue contro quelle che potresti avere — il tuo mazzo è pubblico,
-la tua mano no — e tiene conto di come hai giocato finora, quindi chi chiama
-sempre la stessa carta viene letto. Le carte si scelgono col mouse, col tocco o
-con i tasti `1`–`5` (il Giocatore 2 usa `6`–`0`). In due sullo stesso schermo
-ogni mano resta coperta finché il suo proprietario non la guarda.
+Il mazzo di partenza, uguale per tutti:
 
-### Tirata in tempo reale
+| Carta | Costo | Durata | Che cosa fa |
+|---|---|---|---|
+| **Spinta** ×5 | 1⚡ | 1 s | Tutta la squadra avanti, spalle al palo |
+| **Tirata** ×2 | 1⚡ | 1 s | Il palo verso di sé, camminando all'indietro: breve e forte |
+| **Tenuta** ×3 | 1⚡ | 1 s | Riporta il palo al centro dell'arco e lo ferma |
+| **Sotto** ×2 | 1⚡ | 2 s | Si passa sotto e ci si rigira: la spinta cambia verso |
+| **Freno** | 0⚡ | 1 s | Smorza la giostra, +1⚡ alla battuta dopo (sempre in mano) |
 
-Si tiene premuto il comando, e la squadra esegue finché lo si tiene.
+Le carte da guadagnare come bonus aprono due strade — **potenza** (molta
+energia per pochi secondi) o **efficienza** (più secondi per energia):
 
-| Comando | Tasto | Che cosa fa |
-|---|---|---|
-| **Spinta** | `S` | Si va avanti, spalle al palo: il gesto pieno |
-| **Tirata** | `T` | Si porta il palo a sé camminando all'indietro. Rende quasi quanto la spinta per i primi istanti, poi crolla |
-| **Sotto** | `I` | Si passa sotto il palo e la squadra si rigira. Mentre si passa non si applica forza |
-| **Freno giostra** | `F` | Ci si pianta per smorzare la rotazione e rifiatare |
+| Carta | Costo | Durata | Che cosa fa |
+|---|---|---|---|
+| **Spallata** | 2⚡ | 1 s | La spinta più forte che c'è (+60%) |
+| **Strattone** | 2⚡ | 1 s | Una tirata violenta (+50%) |
+| **Carica lunga** | 2⚡ | 3 s | Una spinta che non molla per tre secondi |
+| **Àncora** | 2⚡ | 3 s | Tiene il palo nell'arco per tre secondi |
+| **Passaggio lampo** | 1⚡ | 1 s | Sotto sicuro e rapidissimo |
 
-I comandi non hanno una direzione: la direzione è quella in cui la squadra
-guarda, e il sotto la ribalta.
+Con poco Gioco di squadra una chiamata può uscire **a metà**: rende di meno, e
+un sotto chiamato male esita. È la disciplina dei tiratori.
+
+### I bonus
+
+Prima del torneo ogni quartiere sceglie un **primo bonus** fra tre. Poi, ogni
+**4 secondi** passati nella Zona Palio — accumulati, anche in una tirata persa —
+se ne guadagna un altro, al massimo **2 per tirata**: la tirata si ferma e si
+sceglie fra tre. I bonus restano per tutto il torneo e sono di due tipi:
+
+- **carte nuove** che entrano nel mazzo (quelle della tabella sopra);
+- **effetti permanenti**: *Fiato lungo* (+1 energia), *Occhio del chiamatore*
+  (una carta in più), *Esterni d'acciaio* (spinte +15%), *Braccia lunghe*
+  (tirate +20%), *Mediani di ferro* (tenute +20%), *Interni svelti* (ogni sotto
+  riesce), *Piede piantato* (il Freno rende 2 energia e frena il doppio),
+  *Disciplina ferrea* (nessuna chiamata a metà).
+
+Le IA guadagnano i loro con la stessa regola — anche nelle tirate fra loro — e
+li scelgono secondo il carattere del quartiere.
+
+### Il Chiamatore artificiale
+
+Non vede le tue carte. A ogni battuta mette in fila le sequenze che può giocare
+e le prova contro giocate verosimili tue: pesca a caso alcune mani dal tuo
+mazzo, che è pubblico, e ne ricava le sequenze che potresti chiamare con la tua
+energia, che si conta. Tiene conto di come hai giocato finora, quindi chi chiama
+sempre la stessa cosa viene letto. Poi sceglie con un po' di imprevedibilità,
+più o meno secondo il carattere del quartiere.
 
 ### I due regimi
 
@@ -112,28 +111,27 @@ verso: le coppie si sommano e il timone parte in rotazione continua. Chi tira la
 rallenta appena. Se ne esce solo con un altro sotto, cronometrato — e in piena
 rotazione può fallire.
 
+### La formazione
+
+Tutte le squadre schierano la stessa formazione: due **Esterni** (i più pesanti,
+leva lunga), due **Mediani** e due **Interni** (i più leggeri, leva corta). La
+posizione entra nella fisica: la Forza di un Esterno, più lontano dal perno,
+sposta il timone più di quella di un Interno, e il peso della squadra è spinta.
+
 ### Due giocatori
 
 Sulla schermata iniziale si sceglie **1 giocatore** (tu contro le tre IA) o
-**2 giocatori** sulla stessa tastiera. In coppia si compongono due rose di fila —
-prima il Giocatore 1, poi il Giocatore 2 — e ciascuno chiama il proprio
-quartiere per tutto il torneo; gli altri due restano all'IA. Quando i due
-quartieri umani si incontrano si chiama la tirata in due, ognuno con i suoi tasti.
+**2 giocatori** sullo stesso schermo: ciascuno sceglie il proprio quartiere e il
+proprio primo bonus, gli altri due quartieri restano all'IA. Quando i due umani
+si affrontano, ogni mano resta **coperta** finché il suo proprietario non la
+guarda.
 
-| | Giocatore 1 | Giocatore 2 |
-|---|---|---|
-| **Spinta** | `S` | `↑` |
-| **Tirata** | `T` | `↓` |
-| **Sotto** | `I` | `→` |
-| **Freno giostra** | `F` | `←` |
+Su telefono in verticale la tirata fra due umani si gioca in **hotseat**: la
+mano del Giocatore 2 va in cima, ruotata di 180°, quella del Giocatore 1 resta
+in basso. Si posa il telefono fra i due e ognuno gioca dal proprio bordo.
 
-A giocatore singolo restano validi anche gli alias comodi (`Spazio` e le frecce
-`↑`/`↓` per spinta e tirata).
-
-Su telefono in verticale, quando i due quartieri umani si affrontano, i comandi
-si dispongono in **hotseat**: il pannello del Giocatore 2 va in cima e ruotato
-di 180°, quello del Giocatore 1 resta in basso. Si posa il telefono fra i due e
-ognuno gioca dal proprio bordo, con i comandi dritti dal suo lato.
+Da tastiera il Giocatore 1 aggiunge le carte con `1`–`9`, toglie l'ultima con
+`Backspace` e chiama con `Invio`; `P` mette in pausa l'animazione.
 
 ## Avvio in locale
 
@@ -149,18 +147,22 @@ poi `http://localhost:8000`.
 
 ```
 js/
-├── core/      stato, PRNG seedabile, rose, calendario e classifica
-├── data/      quartieri e generazione dei nomi
-├── match/     engine (fisica pura), ai, renderer, input, loop di gioco
-├── cards/     tirata a carte: carte e mazzi, battuta, IA, sessione, partita
-└── ui/        schermate, draft, calendario
+├── core/      stato, PRNG seedabile, formazione, calendario e classifica
+├── data/      i quartieri
+├── match/     engine (fisica pura), renderer, HUD
+├── cards/     carte ed energia, bonus, battuta, IA, sessione, tirata giocata
+└── ui/        schermate, bonus e mazzi, calendario
 ```
 
-Il motore in `js/match/engine.js` non tocca il DOM: le stesse identiche regole
-governano la tirata giocata a 60 fps e la simulazione headless degli incontri
-fra IA, comprese quelle risolte con **Simula il resto del torneo**. Non c'è un
-dado sui rating — sono tirate vere, calcolate senza disegnarle.
+Il motore in `js/match/engine.js` non tocca il DOM, e nemmeno la sessione delle
+carte (`js/cards/cardSim.js`): le stesse identiche regole governano la tirata
+giocata e la simulazione degli incontri fra IA, comprese quelle risolte con
+**Simula il resto del torneo** — bonus inclusi. Non c'è un dado sui rating: sono
+tirate vere, calcolate senza disegnarle.
 
-Tutte le costanti di gioco stanno nell'oggetto `TUNING` in cima a `engine.js`.
-Il PRNG è seedabile: a parità di seme, rose, calendario ed esiti sono
-riproducibili.
+Le costanti fisiche stanno in `TUNING` in cima a `engine.js`; energia, carte e
+mazzo base in `js/cards/cards.js`; i bonus in `js/cards/bonus.js`. Il PRNG è
+seedabile: a parità di seme, calendario ed esiti sono riproducibili.
+
+I tornei salvati con le versioni precedenti (rose scelte a mano e tirata in
+tempo reale) non si possono riprendere.

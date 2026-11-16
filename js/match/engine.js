@@ -402,7 +402,9 @@ function newTeamRuntime(teamIndex) {
 /**
  * @param {{teams:[object,object], preset:{duration:number,hold:number}, rng?:Function}} cfg
  */
-export function createMatch({ teams, preset, rng = Math.random }) {
+export function createMatch({
+  teams, preset, rng = Math.random, noFatigue = false, sottoCooldown,
+}) {
   const inertia = Math.max(1, (teams[0].mass + teams[1].mass) * TUNING.INERTIA_PER_KG);
   return {
     teams,
@@ -429,6 +431,14 @@ export function createMatch({ teams, preset, rng = Math.random }) {
     finished: false,
     outcome: null,
     rt: [newTeamRuntime(0), newTeamRuntime(1)],
+    /* Nella tirata a carte la fatica non è più un fiato che si consuma lungo la
+     * partita: è l'energia di ogni battuta, gestita dalle carte. Il motore allora
+     * tiene le squadre sempre fresche e lascia alle carte il costo dello sforzo. */
+    noFatigue,
+    // Respiro dopo un sotto. Nella tirata a carte vale la regola "un sotto per
+    // battuta", che è chiara da leggere; il respiro del motore allora si accorcia
+    // e non fa slittare in silenzio il sotto della battuta dopo.
+    sottoCooldown,
   };
 }
 
@@ -542,7 +552,7 @@ export function step(m, dt, cmdA, cmdB) {
       const chance = cmd.sure ? 1 : sottoChance(m, i);
       rt.sottoOk = m.rng() < chance;
       rt.sottoTimer = team.sottoTime * (cmd.fast ?? 1) * (rt.sottoOk ? 1 : TUNING.SOTTO_FAIL_MULT);
-      rt.sottoCooldown = rt.sottoTimer + TUNING.SOTTO_COOLDOWN;
+      rt.sottoCooldown = rt.sottoTimer + (m.sottoCooldown ?? TUNING.SOTTO_COOLDOWN);
       rt.torque = 0;
       rt.lastCmd = 'sotto';
       continue;
@@ -606,6 +616,8 @@ export function step(m, dt, cmdA, cmdB) {
       * (pulling ? TUNING.PULL_DRAIN_MULT : 1) * (cmd.drain ?? 1);
     rt.stamina = Math.max(0, rt.stamina - drain * m.timeScale * dt);
   }
+
+  if (m.noFatigue) { m.rt[0].stamina = 1; m.rt[1].stamina = 1; }
 
   /* --- integrazione --- */
   const fric = -viscous * m.omega - staticFric * Math.sign(m.omega);

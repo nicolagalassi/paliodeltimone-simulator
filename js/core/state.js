@@ -4,25 +4,16 @@
  * sparsa nel resto dell'app, così il salvataggio resta sempre coerente.
  */
 
-import { assignRolesByWeight } from './roster.js';
-
 const SAVE_KEY = 'pdt.save.v2';
+const VERSION = 4;
 
 /**
- * I due formati. `duration` e `hold` valgono per la tirata in tempo reale;
- * `carte` per quella a carte, che si misura in battute da cinque secondi e
- * chiede meno secondi di tenuta: con chiamate da cinque secondi parcheggiare il
- * palo nell'arco è più difficile che dosandolo istante per istante.
+ * I due formati della tirata: quante battute da cinque secondi, e quanti
+ * secondi consecutivi in zona servono per vincerla.
  */
 export const PRESETS = {
-  rapida: {
-    id: 'rapida', label: 'Breve', duration: 120, hold: 10,
-    carte: { battute: 18, hold: 8 },
-  },
-  regolamentare: {
-    id: 'regolamentare', label: 'Regolamentare', duration: 240, hold: 10,
-    carte: { battute: 26, hold: 8 },
-  },
+  rapida: { id: 'rapida', label: 'Breve', battute: 18, hold: 8 },
+  regolamentare: { id: 'regolamentare', label: 'Regolamentare', battute: 26, hold: 8 },
 };
 
 /** @type {any} */
@@ -56,21 +47,25 @@ export function mutate(fn, { save = true } = {}) {
   return state;
 }
 
+/**
+ * @param {object} cfg
+ * @param {Object<string, {deck:string[], bonuses:string[]}>} cfg.run
+ *   mazzo e bonus di ogni quartiere: crescono lungo il torneo
+ */
 export function newTournamentState({
-  seed, factionId, roster, presetId, teams, schedule, mode = 'single', humans, tirata = 'carte',
+  seed, presetId, teams, schedule, mode = 'single', humans, run,
 }) {
   return {
-    version: 3,
+    version: VERSION,
     seed,
     mode,                                   // 'single' | 'duo'
-    tirata: tirata === 'tempo' ? 'tempo' : 'carte',   // come si chiama la tirata
-    // Quartieri chiamati da un umano, in ordine di giocatore. `factionId` resta
-    // il primo per compatibilità con i tanti punti che leggono "il mio quartiere".
-    humans: humans ?? [factionId],
-    factionId,
+    // Quartieri chiamati da un umano, in ordine di giocatore. `factionId` è il
+    // primo, per i tanti punti che leggono "il mio quartiere".
+    humans,
+    factionId: humans[0],
     presetId: presetId in PRESETS ? presetId : 'rapida',
-    roster,
-    teams,           // { [factionId]: { factionId, roster, isPlayer, playerNo } }
+    teams,           // { [factionId]: { factionId, isPlayer, playerNo } }
+    run,             // { [factionId]: { deck, bonuses } }
     schedule,        // array di giornate
     finals: null,    // creato al termine del girone
     stage: 'group',  // 'group' | 'finals' | 'done'
@@ -80,8 +75,11 @@ export function newTournamentState({
 
 export const getPreset = (s = state) => PRESETS[s?.presetId] ?? PRESETS.rapida;
 
-/** Battute e tenuta della tirata a carte nel formato del torneo. */
-export const getCardPreset = (s = state) => getPreset(s).carte;
+/** Battute e tenuta della tirata nel formato del torneo. */
+export const getCardPreset = (s = state) => {
+  const p = getPreset(s);
+  return { battute: p.battute, hold: p.hold };
+};
 
 /* ---------------- persistenza ---------------- */
 
@@ -95,29 +93,17 @@ export function persist() {
   }
 }
 
+/**
+ * Si riprendono solo i tornei della versione attuale. Quelli precedenti erano
+ * fatti di rose scelte a mano e di tirate in tempo reale, che non esistono
+ * più: non c'è un modo onesto di convertirli in mazzi e bonus.
+ */
 export function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.schedule) return null;
-    // Si accettano i salvataggi dalla v2 in poi. Ai vecchi, nati prima della
-    // modalità a due, si aggiungono i campi mancanti come torneo a giocatore
-    // singolo, così un torneo lasciato a metà resta riprendibile.
-    if (parsed.version !== 2 && parsed.version !== 3) return null;
-    if (!parsed.mode) parsed.mode = 'single';
-    if (!parsed.humans) parsed.humans = [parsed.factionId];
-    // I tornei salvati prima delle carte si giocavano in tempo reale: restano così.
-    if (!parsed.tirata) parsed.tirata = 'tempo';
-    // Rose salvate prima delle posizioni: si assegna un ruolo per peso, così il
-    // motore trova la leva e la formazione resta coerente.
-    for (const id of Object.keys(parsed.teams ?? {})) {
-      const roster = parsed.teams[id]?.roster;
-      if (Array.isArray(roster) && roster.some((s) => !s.role)) assignRolesByWeight(roster);
-    }
-    if (Array.isArray(parsed.roster) && parsed.roster.some((s) => !s.role)) {
-      assignRolesByWeight(parsed.roster);
-    }
+    if (!parsed || parsed.version !== VERSION || !parsed.schedule || !parsed.run) return null;
     return parsed;
   } catch {
     return null;
