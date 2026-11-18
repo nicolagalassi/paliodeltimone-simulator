@@ -34,6 +34,9 @@ export const BONUSES = {
   strattone: { kind: 'card', card: 'strattone', max: 3 },
   ancora: { kind: 'card', card: 'ancora', max: 3 },
   lampo: { kind: 'card', card: 'lampo', max: 3 },
+  muro: { kind: 'card', card: 'muro', max: 3 },
+  contropiede: { kind: 'card', card: 'contropiede', max: 3 },
+  finta: { kind: 'card', card: 'finta', max: 3 },
 
   /* ---- effetti permanenti ---- */
   fiato: {
@@ -138,10 +141,10 @@ export function offerBonuses(loadout, rng, n = 3) {
 
 /* Preferenze dei quattro caratteri: quanto piace ciascun bonus (1 = neutro). */
 const TASTE = {
-  aggressivo: { spallata: 3, esterni: 3, carica: 2, fiato: 1.5, strattone: 1.5 },
-  calcolatore: { fiato: 3, occhio: 3, disciplina: 2, ancora: 1.5, piede: 1.5 },
-  agile: { lampo: 3, interni: 3, strattone: 2, braccia: 2, occhio: 1.5 },
-  metodico: { ancora: 3, mediani: 3, piede: 2, disciplina: 2, carica: 1.5 },
+  aggressivo: { spallata: 3, esterni: 3, carica: 2, fiato: 1.5, strattone: 1.5, contropiede: 1.5 },
+  calcolatore: { fiato: 3, occhio: 3, disciplina: 2, ancora: 1.5, piede: 1.5, muro: 1.5 },
+  agile: { lampo: 3, interni: 3, strattone: 2, braccia: 2, occhio: 1.5, finta: 2 },
+  metodico: { ancora: 3, mediani: 3, piede: 2, disciplina: 2, carica: 1.5, muro: 2 },
 };
 
 /** La scelta dell'IA fra i bonus offerti: secondo il gusto, con un po' di caso. */

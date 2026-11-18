@@ -26,6 +26,7 @@ import {
 } from './bonus.js';
 import { runBattuta, createBattutaRunner } from './battuta.js';
 import { createCardAi } from './cardAi.js';
+import { IMPREVISTI, rollImprevisto } from './imprevisti.js';
 
 const styleOf = (team) => getFaction(team.factionId).aiStyle;
 
@@ -63,6 +64,8 @@ export function createCardSession({
   const history = [];
   let battuta = 0;
   let hidden = [null, null];
+  let imprevisto = null;         // id dell'imprevisto della battuta, o null
+  let bmods = mods.slice();      // modificatori di questa battuta (imprevisto compreso)
 
   const session = {
     m,
@@ -71,24 +74,32 @@ export function createCardSession({
     history,
     loadouts,
     get mods() { return mods; },
+    /** Modificatori validi in questa battuta: quelli della squadra più l'imprevisto. */
+    get battutaMods() { return bmods; },
+    /** L'imprevisto della battuta: { id, name, text } o null. */
+    get imprevisto() { return imprevisto ? { id: imprevisto, ...IMPREVISTI[imprevisto] } : null; },
     get energy() { return energy; },
     get battuta() { return battuta; },
     get over() { return m.finished || battuta >= battute; },
 
     /** Si pesca, si calcola l'energia e l'IA sceglie la sua sequenza, coperta. */
     begin() {
+      imprevisto = rollImprevisto(rng, battuta);
+      const imp = imprevisto ? IMPREVISTI[imprevisto] : null;
+      bmods = mods.map((x) => (imp?.mods ? imp.mods(x) : x));
+      const extra = imp?.energy ? imp.energy(m) : [0, 0];
       for (let i = 0; i < 2; i++) {
-        drawHand(hands[i], rng, HAND_SIZE + mods[i].draw);
-        energy[i] = BASE_ENERGY + mods[i].energy + carry[i];
+        drawHand(hands[i], rng, HAND_SIZE + mods[i].draw + (imp?.draw ?? 0));
+        energy[i] = Math.max(1, BASE_ENERGY + mods[i].energy + carry[i] + extra[i]);
         carry[i] = 0;
       }
       hidden = [0, 1].map((i) => (ais[i] ? ais[i].choose(m, {
         options: playable(hands[i]),
         energy: energy[i],
-        mods: mods[i],
+        mods: bmods[i],
         oppDeck: loadouts[1 - i].deck,
         oppEnergy: energy[1 - i],
-        oppMods: mods[1 - i],
+        oppMods: bmods[1 - i],
         battute,
         battutaIndex: battuta,
       }) : null));
@@ -96,6 +107,16 @@ export function createCardSession({
 
     /** Carte che il lato i può giocare in questa battuta. */
     options(i) { return playable(hands[i]); },
+
+    /**
+     * L'intenzione del lato i, se è dell'IA: la prima carta della sequenza che
+     * ha già scelto (null se resta in presa). Si mostra a chi le gioca contro
+     * prima che chiami, come le intenzioni dei nemici nei giochi di carte.
+     */
+    intent(i) {
+      if (!ais[i] || !hidden[i]) return undefined;
+      return hidden[i][0]?.type ?? null;
+    },
 
     /**
      * Le sequenze si scoprono insieme. Per i lati umani si passa la loro;
@@ -114,9 +135,11 @@ export function createCardSession({
         carry[i] = seqCarry(seq, mods[i]);
       });
       // La disciplina: con poco Gioco di squadra una chiamata può uscire a metà.
-      const misfire = seqs.map((seq, i) => seq.map(() => rng() < misfireChance(m.teams[i], mods[i])));
-      const plans = seqs.map((seq, i) => makeSequencePlan(seq, mods[i], misfire[i]));
-      const entry = { battuta: battuta + 1, seqs, misfire };
+      const misfire = seqs.map((seq, i) => seq.map(() => rng() < misfireChance(m.teams[i], bmods[i])));
+      const plans = seqs.map((seq, i) => makeSequencePlan(seq, bmods[i], misfire[i]));
+      const entry = {
+        battuta: battuta + 1, seqs, misfire, imprevisto,
+      };
       history.push(entry);
       return { ...entry, plans };
     },

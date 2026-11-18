@@ -64,7 +64,9 @@ function permutations(list) {
   return out;
 }
 
-const KIND_RANK = { brake: 0, sotto: 1, pull: 2, push: 3, hold: 4 };
+const KIND_RANK = {
+  brake: 0, sotto: 1, react: 2, pull: 3, push: 4, hold: 5,
+};
 
 /**
  * Gli ordini da provare per una combinazione di carte, raccolte in blocchi
@@ -174,7 +176,9 @@ function sampledPlays(deckTypes, energy, rng, n) {
 export function createCardAi(index, style, rng, opts = {}) {
   const cfg = { ...(STYLES[style] ?? STYLES.metodico), ...opts };
   const carryValue = opts.carry ?? CARRY_VALUE;
-  const habit = { push: 0, hold: 0, sotto: 0, pull: 0, brake: 0 };
+  const habit = {
+    push: 0, hold: 0, sotto: 0, pull: 0, brake: 0, react: 0,
+  };
   let habitTotal = 0;
 
   return {

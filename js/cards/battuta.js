@@ -8,7 +8,7 @@
 import {
   TUNING, step, normAngle, distanceToZone, activeArm, endOnTime,
 } from '../match/engine.js';
-import { BATTUTA_SECONDS } from './cards.js';
+import { BATTUTA_SECONDS, resolveReactions } from './cards.js';
 
 const DEG = Math.PI / 180;
 
@@ -24,7 +24,8 @@ export function runBattuta(m, planA, planB, battute = Infinity, index = 0, dt = 
   // fretta: i piani vanno creati con lo stesso passo (vedi makeSequencePlan).
   const steps = Math.round(BATTUTA_SECONDS / dt);
   for (let n = 0; n < steps && !m.finished; n++) {
-    step(m, dt, planA(m, 0), planB(m, 1));
+    const [a, b] = resolveReactions(m, planA(m, 0), planB(m, 1));
+    step(m, dt, a, b);
   }
   if (index + 1 >= battute) endOnTime(m);
 }
@@ -41,7 +42,8 @@ export function createBattutaRunner(m, planA, planB, { battute = Infinity, index
     advance(dt) {
       acc += dt;
       while (acc >= TUNING.STEP && done < BATTUTA_STEPS && !m.finished) {
-        step(m, TUNING.STEP, planA(m, 0), planB(m, 1));
+        const [a, b] = resolveReactions(m, planA(m, 0), planB(m, 1));
+      step(m, TUNING.STEP, a, b);
         acc -= TUNING.STEP;
         done++;
       }

@@ -125,11 +125,13 @@ Il mazzo di partenza, uguale per tutti:
 
 | Carta | Costo | Durata | Che cosa fa |
 |---|---|---|---|
-| **Spinta** ×5 | 1⚡ | 1 s | Tutta la squadra avanti, spalle al palo |
+| **Spinta** ×4 | 1⚡ | 1 s | Tutta la squadra avanti, spalle al palo |
 | **Tirata** ×2 | 1⚡ | 1 s | Il palo verso di sé, camminando all'indietro: breve e forte |
-| **Tenuta** ×3 | 1⚡ | 1 s | Riporta il palo al centro dell'arco e lo ferma |
+| **Tenuta** ×2 | 1⚡ | 1 s | Riporta il palo al centro dell'arco e lo ferma |
 | **Sotto** ×2 | 1⚡ | 2 s | Si passa sotto e ci si rigira: la spinta cambia verso |
 | **Freno** | 0⚡ | 1 s | Smorza la giostra, +1⚡ alla battuta dopo (sempre in mano) |
+| **Muro** ×1 | 1⚡ | 1 s | *Risposta*: se l'avversario spinge o tira in quel secondo, gli fa muro contro (+50%); altrimenti presa |
+| **Contropiede** ×1 | 1⚡ | 1 s | *Risposta*: se l'avversario è fermo (presa, freno, sotto), spinta +80%; altrimenti una spinta debole |
 
 Le carte da guadagnare come bonus aprono due strade — **potenza** (molta
 energia per pochi secondi) o **efficienza** (più secondi per energia):
@@ -141,6 +143,36 @@ energia per pochi secondi) o **efficienza** (più secondi per energia):
 | **Carica lunga** | 2⚡ | 3 s | Una spinta che non molla per tre secondi |
 | **Àncora** | 2⚡ | 3 s | Tiene il palo nell'arco per tre secondi |
 | **Passaggio lampo** | 1⚡ | 1 s | Sotto sicuro e rapidissimo |
+| **Finta** | 1⚡ | 1 s | *Risposta*: se l'avversario spinge o tira, la sua forza va a vuoto (−70%) |
+
+Anche Muro e Contropiede si possono guadagnare come bonus, per averne più copie.
+
+### Leggere l'avversario
+
+Le chiamate restano coperte, ma non si gioca del tutto alla cieca:
+
+- **Intenzione** — prima di chiamare si vede con che carta **apre** l'IA (la
+  prima della sua sequenza, già decisa). È lì che le carte di risposta rendono
+  di più: un Muro contro la sua Spinta, un Contropiede contro il suo Freno.
+- **Carte di risposta** — valgono solo se si indovina che cosa fa l'altro in quel
+  secondo. Nel duello una risposta andata a segno resta segnata con ✓.
+- **Combo** — certe carte rendono di più subito dopo altre, e la linea del tempo
+  lo mostra mentre si compone la sequenza:
+
+| Combo | Quando | Effetto |
+|---|---|---|
+| **Ondata** | la terza spinta di fila (e le seguenti) | +40% |
+| **Rovescio** | una spinta subito dopo un sotto | +30% |
+| **Strappo doppio** | una tirata subito dopo un'altra | +30% |
+| **Presa ferrea** | una tenuta subito dopo un'altra | +25% |
+| **Rimessa** | un Contropiede subito dopo un Muro | +30% |
+
+- **Imprevisti** — circa una battuta su tre (mai la prima) ha una condizione
+  che vale per tutti, annunciata prima di chiamare: *il fango* (spinte −30%,
+  tirate +20%), *il pubblico incita* (+1⚡ a chi è più lontano dalla zona), *le
+  campane della Torre* (una carta in più), *il solleone* (−1⚡ a tutti), *il
+  richiamo dei capitani* (nessuna chiamata a metà). Le carte in mano mostrano
+  già l'effetto.
 
 Con poco Gioco di squadra una chiamata può uscire **a metà**: rende di meno, e
 un sotto chiamato male esita. È la disciplina dei tiratori.
