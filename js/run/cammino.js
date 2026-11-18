@@ -50,7 +50,7 @@ export function opponentBonusCount(node) {
 }
 
 export function newCammino({
-  seed, presetId, factionId, loadout,
+  seed, factionId, loadout,
 }) {
   const rng = makeRng((seed ^ 0x9e3779b9) >>> 0);
   const rivals = FACTIONS.map((f) => f.id).filter((id) => id !== factionId);
@@ -60,7 +60,6 @@ export function newCammino({
     kind: 'cammino',
     mode: 'cammino',
     seed,
-    presetId,
     factionId,
     humans: [factionId],
     loadout,

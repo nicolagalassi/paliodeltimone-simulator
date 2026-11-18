@@ -8,7 +8,7 @@
  * tempo che avanza è presa passiva: la squadra tiene ma non spinge.
  *
  * Le due squadre partono identiche, con lo stesso mazzo base. A distinguerle
- * sono le carte e gli effetti guadagnati durante il torneo (vedi bonus.js).
+ * sono le carte e gli effetti guadagnati lungo il cammino (vedi bonus.js).
  *
  * Il Freno non sta nel mazzo: è sempre disponibile, una volta per battuta, non
  * costa nulla e fa rifiatare — un punto di energia in più alla battuta dopo.

@@ -43,7 +43,6 @@ const REVEAL_MS = 1100;
 let fast = false;
 const DEG = 180 / Math.PI;
 
-const sideOf = (playerNo) => (playerNo === 2 ? 'b' : 'a');
 const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
 const nameOf = (c) => CARD_TYPES[c.type].name;
 
@@ -60,16 +59,15 @@ function node(tag, className, text) {
  * @param {object} cfg.homeTeam
  * @param {object} cfg.awayTeam
  * @param {[object, object]} cfg.loadouts  mazzo e bonus delle due squadre (aggiornati dai bonus)
- * @param {Array<{type:'ai'}|{type:'human',playerNo:1|2}>} cfg.controllers  [casa, trasferta]
+ * @param {Array<{type:'ai'}|{type:'human'}>} cfg.controllers  [casa, trasferta]: un solo lato umano
  * @param {number} cfg.battute
  * @param {number} cfg.hold
  * @param {number|string} cfg.seed
  * @param {string} [cfg.title]
- * @param {boolean} [cfg.duo]
  * @returns {Promise<object>} risultato orientato home/away
  */
 export function playCardMatch({
-  homeTeam, awayTeam, loadouts, controllers, battute, hold, seed, title, duo = false,
+  homeTeam, awayTeam, loadouts, controllers, battute, hold, seed, title,
 }) {
   return new Promise((resolve) => {
     const session = createCardSession({
@@ -80,31 +78,23 @@ export function playCardMatch({
     const factions = [getFaction(homeTeam.factionId), getFaction(awayTeam.factionId)];
     const colors = factions.map((f) => f.color);
 
+    // Il lato umano (al più uno): la sua mano sta in basso, nel pannello "a".
     const humans = [];
     controllers.forEach((c, i) => {
-      if (c.type === 'human') humans.push({ index: i, playerNo: c.playerNo, side: sideOf(c.playerNo) });
+      if (c.type === 'human' && !humans.length) humans.push({ index: i, side: 'a' });
     });
-    // A due umani sullo stesso schermo la mano resta coperta finché il suo
-    // proprietario non la guarda: è l'equivalente di tenere le carte al petto.
-    const covered = humans.length === 2;
-    const hotseat = duo && humans.length === 2;
 
     /* ---- la schermata ---- */
     $('hud-battuta-tot').textContent = battute;
     $('bonus-overlay').hidden = true;
     $('battuta-info').hidden = true;
     $('battuta-log').replaceChildren();
-    $('screen-match').classList.toggle('is-hotseat', hotseat);
-    $('hand-player-a').hidden = true;
-    $('hand-player-b').hidden = true;
-    for (const h of humans) {
-      $(`hand-player-${h.side}`).hidden = false;
-      $(`hand-label-${h.side}`).textContent = duo
-        ? `Giocatore ${h.playerNo} · ${factions[h.index].name}`
-        : 'La tua mano';
-    }
+    $('hand-player-a').hidden = !humans.length;
+    $('hand-label-a').textContent = 'La tua mano';
 
-    const els = prepareHud({ factions, colors, humans, duo, hold, title });
+    const els = prepareHud({
+      factions, colors, humans, hold, title,
+    });
     const renderer = createRenderer($('field'));
     const duel = createDuel();
     renderer.resize();
@@ -163,18 +153,12 @@ export function playCardMatch({
 
     /* ================= la mano e la sequenza ================= */
 
-    function cardButton(card, h, { faceUp, order = 0, reason = null }) {
+    function cardButton(card, h, { order = 0, reason = null }) {
       const t = CARD_TYPES[card.type];
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `card card-${t.kind}`;
       btn.dataset.type = card.type;
-      if (!faceUp) {
-        btn.classList.add('is-covered');
-        btn.disabled = true;
-        btn.append(node('span', 'card-back', '◆'));
-        return btn;
-      }
       btn.title = t.text + (reason ? ` — ${reason}` : '');
       btn.append(
         node('span', 'card-cost', `${t.cost}⚡`),
@@ -240,12 +224,9 @@ export function playCardMatch({
         const energy = session.energy[h.index];
         const box = $(`hand-cards-${h.side}`);
         const status = $(`hand-status-${h.side}`);
-        const peek = $(`hand-peek-${h.side}`);
         const undo = $(`hand-undo-${h.side}`);
         const go = $(`hand-go-${h.side}`);
         let seq = [];
-        let open = !covered;
-        const usesKeys = h.playerNo === 1;
 
         const add = (c) => { if (!whyNot(seq, c, energy)) { seq = [...seq, c]; render(); } };
         const removeAt = (k) => { seq = seq.filter((_, j) => j !== k); render(); };
@@ -254,59 +235,41 @@ export function playCardMatch({
           box.replaceChildren(...opts.map((c, k) => {
             const at = seq.findIndex((x) => x.uid === c.uid);
             const reason = at >= 0 ? null : whyNot(seq, c, energy);
-            const b = cardButton(c, h, { faceUp: open, order: at + 1, reason });
-            if (open) {
-              if (usesKeys && k < 9) b.append(node('span', 'card-key', String(k + 1)));
-              b.addEventListener('click', () => (at >= 0 ? removeAt(at) : add(c)));
-            }
+            const b = cardButton(c, h, { order: at + 1, reason });
+            if (k < 9) b.append(node('span', 'card-key', String(k + 1)));
+            b.addEventListener('click', () => (at >= 0 ? removeAt(at) : add(c)));
             return b;
           }));
-          if (open) {
-            renderEnergy(h, seq);
-            renderTimeline(h, seq, removeAt);
-          } else {
-            $(`hand-energy-${h.side}`).replaceChildren(node('span', 'pip-count', `${energy}⚡`));
-            $(`hand-timeline-${h.side}`).replaceChildren(node('span', 'tl-free', 'sequenza coperta'));
-          }
-          peek.hidden = !covered;
-          peek.textContent = open ? 'Copri le carte' : 'Guarda le carte';
-          undo.hidden = !open;
+          renderEnergy(h, seq);
+          renderTimeline(h, seq, removeAt);
+          undo.hidden = false;
           undo.disabled = !seq.length;
-          go.hidden = !open;
+          go.hidden = false;
           go.disabled = false;
           go.textContent = seq.length ? 'Chiama' : 'Chiama: solo presa';
-          status.textContent = open ? 'metti in fila le carte' : 'carte coperte';
+          status.textContent = 'metti in fila le carte';
           status.classList.remove('is-ready');
         }
 
         function confirm() {
           window.removeEventListener('keydown', onKey);
-          peek.onclick = null;
           undo.onclick = null;
           go.onclick = null;
-          peek.hidden = true;
           undo.hidden = true;
           go.hidden = true;
-          // Dopo la chiamata la mano si richiude: a due, l'altro non deve vederla.
           box.replaceChildren(...opts.map((c) => {
             const at = seq.findIndex((x) => x.uid === c.uid);
-            const b = cardButton(c, h, { faceUp: !covered, order: covered ? 0 : at + 1 });
+            const b = cardButton(c, h, { order: at + 1 });
             b.disabled = true;
             return b;
           }));
-          if (covered) {
-            $(`hand-timeline-${h.side}`).replaceChildren(node('span', 'tl-free', 'chiamata coperta'));
-          } else {
-            renderTimeline(h, seq, null);
-          }
-          status.textContent = covered ? '✓ chiamata pronta'
-            : `hai chiamato ${seq.length ? seq.map(nameOf).join(' → ') : 'solo presa'}`;
+          renderTimeline(h, seq, null);
+          status.textContent = `hai chiamato ${seq.length ? seq.map(nameOf).join(' → ') : 'solo presa'}`;
           status.classList.add('is-ready');
           done(seq);
         }
 
         const onKey = (e) => {
-          if (!usesKeys || !open) return;
           if (/^Digit[1-9]$/.test(e.code)) {
             const k = Number(e.code.slice(5)) - 1;
             if (k < opts.length) {
@@ -323,7 +286,6 @@ export function playCardMatch({
           }
         };
         window.addEventListener('keydown', onKey);
-        peek.onclick = () => { open = !open; render(); };
         undo.onclick = () => { if (seq.length) removeAt(seq.length - 1); };
         go.onclick = confirm;
         render();
@@ -349,7 +311,7 @@ export function playCardMatch({
         const who = $(`duel-who-${x}`);
         const h = humans.find((u) => u.index === i);
         who.replaceChildren(factions[i].name);
-        if (h) who.append(node('span', 'duel-you', duo ? ` G${h.playerNo}` : ' (tu)'));
+        if (h) who.append(node('span', 'duel-you', ' (tu)'));
         who.style.setProperty('--tc', colors[i]);
         $(`duel-track-${x}`).replaceChildren();
         $(`duel-delta-${x}`).textContent = '';
@@ -514,14 +476,9 @@ export function playCardMatch({
     /** Il giocatore umano h sceglie un bonus fra quelli offerti. */
     function chooseBonus(h, offers, k, of) {
       return new Promise((done) => {
-        const card = $('bonus-overlay-card');
-        // In hotseat il Giocatore 2 siede dall'altra parte: la scelta va girata verso di lui.
-        card.classList.toggle('is-flipped', hotseat && h.playerNo === 2);
-        $('bonus-overlay-title').textContent = duo
-          ? `Bonus per il Giocatore ${h.playerNo}`
-          : 'Bonus guadagnato';
+        $('bonus-overlay-title').textContent = 'Bonus guadagnato';
         $('bonus-overlay-detail').textContent = `${factions[h.index].name} ha accumulato ${(k + 1) * 4} secondi `
-          + 'nella Zona Palio. Scegli un vantaggio: resta per tutto il torneo.'
+          + 'nella Zona Palio. Scegli un vantaggio: resta fino al Palio.'
           + (of > 1 ? ` (${k + 1} di ${of})` : '');
         renderBonusChoice($('bonus-overlay-grid'), offers, (id) => {
           $('bonus-overlay').hidden = true;
@@ -577,7 +534,7 @@ export function playCardMatch({
     }
 
     function finish() {
-      showOutcome(m, factions, humans, duo, () => {
+      showOutcome(m, factions, humans, () => {
         cancelAnimationFrame(raf);
         renderer.destroy();
         window.removeEventListener('keydown', onPauseKey);

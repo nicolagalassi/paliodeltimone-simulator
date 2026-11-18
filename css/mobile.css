@@ -61,12 +61,11 @@ body:has(#screen-match:not([hidden])) {
   }
   .faction-card::after { width: 120px; height: 120px; }
 
-  .preset-options { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
-  #mode-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
-  #mode-options .preset-btn { padding: 0.5rem 0.35rem; }
-  #mode-options .preset-btn strong { font-size: 0.86rem; }
-  #mode-options .preset-btn span { font-size: 0.72rem; line-height: 1.2; }
   .screen-foot .btn { flex: 1; }
+  .screen-head-row { flex-direction: column; gap: 0.5rem; align-items: stretch; }
+  .screen-head-row .title { font-size: 1.5rem; }
+  .screen-head-row .btn { align-self: flex-start; }
+
 
   /* ---- bonus: tre righe compatte ---- */
   .bonus-grid { grid-template-columns: 1fr; gap: 0.5rem; }
@@ -75,29 +74,6 @@ body:has(#screen-match:not([hidden])) {
   .bonus-text { font-size: 0.74rem; }
   .bonus-card-wrap h2 { font-size: 1.25rem; }
   .bonus-card-wrap p { margin: 0.3rem 0 0.7rem; font-size: 0.82rem; }
-
-  /* ---- torneo ---- */
-  .screen-head-row { flex-direction: column; gap: 0.5rem; align-items: stretch; }
-  .screen-head-row .title { font-size: 1.5rem; }
-  .screen-head-row .btn { align-self: flex-start; }
-
-  /* I due quartieri restano affiancati, il punteggio scende sotto: su 390 px
-     un risultato completo di tenuta, motivo e durata non ci sta in mezzo ai
-     nomi senza spingerne uno fuori dallo schermo. */
-  .fixture {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "home away" "score score";
-    gap: 0.35rem 0.5rem;
-    font-size: 0.84rem;
-  }
-  .fixture-team.left { grid-area: home; }
-  .fixture-team.right { grid-area: away; }
-  .fixture-score {
-    grid-area: score; justify-self: center;
-    font-size: 0.72rem; padding: 0.1rem 0.4rem;
-  }
-  .fixture-time { margin-left: 0.35rem; padding-left: 0.35rem; }
-  .standings-panel { position: static; }
 
   /* ---- tirata ---- */
   .screen-match { gap: 0.5rem; }
@@ -127,32 +103,6 @@ body:has(#screen-match:not([hidden])) {
   .duel-block { font-size: 0.6rem; border-radius: 3px; }
   .duel-delta { font-size: 0.68rem; }
 
-  /* ---- hotseat: due giocatori ai due bordi del telefono ----
-   * La mano del Giocatore 2 lascia la colonna in fondo e va fissata in cima,
-   * ruotata di 180°: chi siede dal lato opposto se la trova dritta e con le
-   * carte nell'ordine giusto (la doppia riflessione della rotazione rimette le
-   * cose a posto dal suo punto di vista). Il dito colpisce la carta che vede,
-   * perché la rotazione sposta anche l'area sensibile al tocco. In mezzo resta
-   * il campo; il Giocatore 1 tiene la sua mano in basso. */
-  .screen-match.is-hotseat #hand-player-b {
-    position: fixed;
-    inset: 0 0 auto 0;
-    z-index: 20;
-    transform: rotate(180deg);
-    background: var(--bg);
-    padding: 0.4rem 0.8rem 0.45rem;
-    gap: 0.3rem;
-    border-bottom: 1px solid var(--line);
-    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
-  }
-  .screen-match.is-hotseat #hand-player-b .card { min-height: 64px; }
-  .screen-match.is-hotseat #hand-player-b .card-effect { display: none; }
-  /* Spazio riservato in cima per la mano ruotata, così nomi e cronometro
-     restano visibili sotto. */
-  .screen-match.is-hotseat { padding-top: 11.6rem; }
-  .screen-match.is-hotseat .battuta-log { display: none; }
-  /* La scelta del bonus del Giocatore 2 si gira verso di lui. */
-  .screen-match.is-hotseat .bonus-card-wrap.is-flipped { transform: rotate(180deg); }
 }
 
 /* ============ telefono in orizzontale ============ */

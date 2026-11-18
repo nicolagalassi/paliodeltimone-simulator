@@ -27,13 +27,14 @@ export function buildTeam(factionId) {
  * @param {object} cfg
  * @param {Array} cfg.factions   i due quartieri, [casa, trasferta]
  * @param {string[]} cfg.colors
- * @param {Array<{index:number, playerNo:number}>} cfg.humans  i lati umani
- * @param {boolean} cfg.duo
+ * @param {Array<{index:number}>} cfg.humans  il lato umano, se c'è
  * @param {number} cfg.hold      secondi di tenuta richiesti
  * @param {string} [cfg.title]
  * @returns {object} gli elementi dell'HUD dinamico, per `updateHud`
  */
-export function prepareHud({ factions, colors, humans, duo, hold, title }) {
+export function prepareHud({
+  factions, colors, humans, hold, title,
+}) {
   // Il quartiere del giocatore va riconosciuto a colpo d'occhio: i due nomi
   // sono simmetrici e senza marcatore si chiama la tirata per l'avversario.
   // Il marcatore è un elemento a sé e non un suffisso del nome, altrimenti su
@@ -45,7 +46,7 @@ export function prepareHud({ factions, colors, humans, duo, hold, title }) {
   for (const h of humans) {
     const badge = h.index === 0 ? $('hud-you-a') : $('hud-you-b');
     badge.hidden = false;
-    badge.textContent = duo ? `G${h.playerNo}` : 'tu';
+    badge.textContent = 'tu';
   }
   $('hud-you-a').style.setProperty('--tc', colors[0]);
   $('hud-you-b').style.setProperty('--tc', colors[1]);
@@ -146,7 +147,7 @@ export function updateGiostra(m, focusIndex) {
     : `sotto al ${Math.round(chance * 100)}%`;
 }
 
-export function showOutcome(m, factions, humans, duo, onContinue) {
+export function showOutcome(m, factions, humans, onContinue) {
   const overlay = $('match-overlay');
   const { winnerIndex, reason } = m.outcome;
 
@@ -156,14 +157,6 @@ export function showOutcome(m, factions, humans, duo, onContinue) {
   if (winnerIndex === null) {
     titleEl.textContent = 'Tirata pari';
     titleEl.style.setProperty('--oc', 'var(--ink)');
-  } else if (duo) {
-    // A due umani non c'è un "tu": vince un quartiere, e se a chiamarlo era un
-    // giocatore lo si dice, così nessuno deve ricordare da che parte stava.
-    const winnerHuman = humans.find((h) => h.index === winnerIndex);
-    titleEl.textContent = winnerHuman
-      ? `Vince Giocatore ${winnerHuman.playerNo}`
-      : `Vince ${factions[winnerIndex].name}`;
-    titleEl.style.setProperty('--oc', factions[winnerIndex].color);
   } else {
     const won = winnerIndex === (humans[0]?.index ?? 0);
     titleEl.textContent = won ? 'Tirata vinta!' : 'Tirata persa';

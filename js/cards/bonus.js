@@ -1,15 +1,16 @@
 /**
  * I bonus della run.
  *
- * Il torneo è una run: prima di cominciare ogni squadra sceglie un bonus, e poi
- * ne guadagna uno ogni BONUS_EVERY secondi passati nella Zona Palio — anche in
- * una tirata persa. I bonus restano per tutto il torneo. Sono di due tipi:
+ * Il Cammino è una run: prima di cominciare si sceglie un bonus, e poi se ne
+ * guadagna uno ogni BONUS_EVERY secondi passati nella Zona Palio — anche in una
+ * tirata persa — e uno per ogni tirata vinta. I bonus restano fino al Palio.
+ * Sono di due tipi:
  *
  *   CARTA  — una carta nuova entra nel mazzo (Spallata, Àncora…);
  *   EFFETTO — un vantaggio permanente (più energia, più carte, spinta più forte…).
  *
- * L'IA guadagna i suoi con la stessa regola e li sceglie secondo il carattere
- * del suo quartiere.
+ * L'IA guadagna i suoi in zona con la stessa regola e li sceglie secondo il
+ * carattere del suo quartiere.
  */
 
 import { CARD_TYPES, NO_MODS } from './cards.js';
@@ -18,7 +19,7 @@ import { CARD_TYPES, NO_MODS } from './cards.js';
 export const BONUS_EVERY = 4;
 /**
  * Bonus al massimo per tirata. Senza tetto una squadra ne prendeva più di tre a
- * tirata e a metà torneo il catalogo era esaurito: le scelte smettevano di
+ * tirata e a metà run il catalogo era esaurito: le scelte smettevano di
  * essere scelte. Con due, una run ne raccoglie una quindicina.
  */
 export const MAX_BONUS_PER_TIRATA = 2;

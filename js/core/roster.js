@@ -9,7 +9,7 @@
  *   ESTERNO  — all'estremità: la leva più lunga, e quindi il più pesante.
  *
  * Nella tirata a carte tutte le squadre partono con la stessa formazione: a
- * distinguerle sono le carte e i bonus che guadagnano lungo il torneo. La
+ * distinguerle sono le carte e i bonus che guadagnano lungo il cammino. La
  * fisica della posizione però resta — la leva entra nella coppia (engine.js).
  */
 
