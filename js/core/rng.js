@@ -1,6 +1,6 @@
 /**
- * PRNG seedabile. Serve a rendere riproducibili la generazione del pool,
- * dei roster IA e le simulazioni headless: stesso seed => stesso torneo.
+ * PRNG seedabile. Serve a rendere riproducibili calendario, mazzi, bonus e
+ * simulazioni headless: stesso seed => stesso torneo.
  */
 
 /** Hash di una stringa in un intero a 32 bit, per accettare seed testuali. */

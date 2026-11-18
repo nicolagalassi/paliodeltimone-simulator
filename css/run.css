@@ -1,0 +1,203 @@
+/**
+ * Il Cammino del Palio: la mappa (una carta da viaggio a inchiostro) e la
+ * "scena" (una pergamena con un sigillo, per eventi, bottega ed esiti).
+ */
+
+/* ============ stato della run ============ */
+.run-status-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 0.4rem 1.2rem; font-size: 1rem;
+}
+.run-hearts { display: inline-flex; gap: 0.15rem; font-size: 1.35rem; line-height: 1; }
+.heart { color: var(--ink-faint); }
+.heart.is-full { color: var(--wax); text-shadow: 0 1px 0 rgba(255, 240, 210, 0.7); }
+.run-coins b { font-family: var(--font-display); font-size: 1.15rem; color: var(--gold); }
+.run-decksize { color: var(--ink-dim); font-style: italic; }
+.tag-faction { color: var(--fc); font-weight: 600; }
+
+/* ============ la mappa ============ */
+.cammino-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.2rem; align-items: start;
+}
+@media (max-width: 900px) { .cammino-layout { grid-template-columns: 1fr; } }
+
+.map-panel {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background:
+    radial-gradient(90% 70% at 50% 50%, transparent 60%, rgba(110, 72, 30, 0.22) 100%),
+    var(--paper-grain), #efdcb2;
+  box-shadow: var(--rule), var(--shadow);
+  padding: 0.6rem 0.6rem 0.8rem;
+}
+.map {
+  position: relative;
+  height: clamp(520px, 78vh, 760px);
+  margin: 0 auto;
+  max-width: 560px;
+}
+.map-paths { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.path { stroke: var(--line); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; fill: none; }
+.path.is-walked { stroke: var(--wax); stroke-width: 3; stroke-dasharray: none; }
+.path.is-open { stroke: var(--ink); stroke-width: 2.5; stroke-dasharray: 6 4; animation: march 1.2s linear infinite; }
+@keyframes march { to { stroke-dashoffset: -20; } }
+
+.map-node {
+  --oc: var(--ink-dim);
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+  background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+.map-node:disabled { cursor: default; }
+.node-icon {
+  width: 2.6rem; height: 2.6rem; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 1.15rem; line-height: 1;
+  background: var(--paper-grain), var(--bg-elev);
+  border: 2px solid var(--line);
+  box-shadow: inset 0 0 0 2px var(--bg-elev), inset 0 0 0 3px var(--line-soft);
+  transition: transform 120ms ease;
+}
+/* Le tappe con un avversario portano il suo colore attorno al medaglione. */
+.node-tirata .node-icon, .node-rivale .node-icon { border-color: var(--oc); border-width: 3px; }
+.node-rivale .node-icon { width: 3rem; height: 3rem; font-size: 1.3rem; }
+.node-label {
+  font-size: 0.72rem; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.02em;
+  white-space: nowrap; color: var(--ink-dim);
+  background: rgba(242, 228, 192, 0.85); padding: 0 0.25rem; border-radius: 3px;
+}
+.node-tirata .node-label, .node-rivale .node-label { color: color-mix(in srgb, var(--oc) 75%, #000); }
+
+/* Il Palio, in cima: un grande sigillo. */
+.node-palio .node-icon {
+  width: 4rem; height: 4rem; font-size: 1.8rem;
+  border: 0; color: #f6e7c4;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--oc) 55%, #fff) 0 8%, var(--oc) 32%, color-mix(in srgb, var(--oc) 55%, #000) 100%);
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--oc) 70%, #000), inset 0 0 0 6px color-mix(in srgb, var(--oc) 80%, #fff), 0 3px 8px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.node-palio .node-label { font-size: 0.85rem; color: var(--sand); }
+
+/* Niente trasparenze: i sentieri non devono vedersi attraverso le tappe. */
+.map-node.is-visited .node-icon { background: var(--bg-elev-2); color: var(--ink-faint); }
+.map-node.is-here .node-icon { box-shadow: 0 0 0 3px var(--wax), inset 0 0 0 2px var(--bg-elev); color: var(--ink); }
+.map-node:disabled:not(.is-visited):not(.node-palio) .node-icon { color: var(--ink-faint); filter: saturate(0.55); }
+.map-node:disabled:not(.is-visited):not(.node-palio) .node-label { opacity: 0.75; }
+.map-node.is-open .node-icon {
+  border-color: var(--wax);
+  box-shadow: 0 0 0 3px rgba(143, 29, 29, 0.25), inset 0 0 0 2px var(--bg-elev);
+  animation: beckon 1.4s ease-in-out infinite;
+}
+.map-node.is-open:hover .node-icon { transform: scale(1.1); }
+.map-node.is-open .node-label { color: var(--wax); }
+@keyframes beckon { 50% { box-shadow: 0 0 0 7px rgba(143, 29, 29, 0.12), inset 0 0 0 2px var(--bg-elev); } }
+@media (prefers-reduced-motion: reduce) {
+  .map-node.is-open .node-icon, .path.is-open { animation: none; }
+}
+.map-hint { text-align: center; font-style: italic; color: var(--ink-faint); margin-top: 0.4rem; font-size: 0.95rem; }
+
+/* ---- colonna laterale: mazzo e diario ---- */
+.run-side {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--paper-grain), var(--bg-elev); box-shadow: var(--rule);
+  padding: 1rem; position: sticky; top: 1rem;
+}
+.run-side .squad-effects { margin: 0.6rem 0 1rem; color: var(--sand); font-style: italic; }
+.run-log { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; font-size: 0.92rem; color: var(--ink-dim); }
+.run-log-empty { list-style: none; margin-left: -1.1rem; font-style: italic; color: var(--ink-faint); }
+.run-status { position: sticky; top: 0; z-index: 2; padding: 0.3rem 0; background: linear-gradient(var(--bg) 70%, transparent); }
+
+/* ============ la scena ============ */
+.screen-scene { justify-content: center; max-width: 820px; }
+.scene-card {
+  position: relative;
+  margin: 2.2rem auto 1rem; width: 100%;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background:
+    radial-gradient(100% 80% at 50% 50%, transparent 65%, rgba(110, 72, 30, 0.18) 100%),
+    var(--paper-grain), var(--bg-elev);
+  box-shadow: var(--rule), var(--shadow);
+  padding: 2.4rem clamp(1rem, 4vw, 2.2rem) 1.6rem;
+  text-align: center;
+}
+/* Il sigillo di ceralacca appeso in cima alla pergamena. */
+.scene-seal {
+  --sc: var(--wax);
+  position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+  width: 3.6rem; height: 3.6rem; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 1.5rem; line-height: 1; color: #f6e7c4;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--sc) 55%, #fff) 0 8%, var(--sc) 32%, color-mix(in srgb, var(--sc) 55%, #000) 100%);
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--sc) 70%, #000), inset 0 0 0 6px color-mix(in srgb, var(--sc) 80%, #fff), 0 3px 8px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.scene-kicker {
+  font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.scene-title {
+  font-family: "Cinzel Decorative", var(--font-display);
+  font-size: clamp(1.5rem, 4.5vw, 2.2rem); color: var(--sand); margin: 0.3rem 0 0.2rem;
+}
+.scene-title::after {
+  content: "❦"; display: block; margin: 0.35rem auto 0; width: min(280px, 70%);
+  font-size: 0.95rem; color: var(--gold); line-height: 1;
+  background: linear-gradient(var(--line), var(--line)) left 50% / 40% 1px no-repeat,
+              linear-gradient(var(--line), var(--line)) right 50% / 40% 1px no-repeat;
+}
+.scene-text { font-size: 1.12rem; line-height: 1.5; color: var(--ink-dim); margin: 0.6rem auto 0; max-width: 34rem; }
+.scene-body { margin-top: 1rem; display: grid; gap: 0.9rem; text-align: left; }
+.scene-body .run-status-row { justify-content: center; }
+.scene-actions { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+.scene-choice { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-width: 11rem; }
+.scene-choice-detail { font-family: var(--font-body); font-weight: 400; font-style: italic; font-size: 0.85rem; letter-spacing: 0; opacity: 0.85; }
+
+.opp-sheet { border-top: 1px solid var(--line-soft); padding-top: 0.8rem; }
+.opp-sheet .squad-effects { margin-top: 0.5rem; color: var(--sand); font-style: italic; }
+.end-summary { text-align: center; color: var(--ink-dim); }
+.end-summary .run-log { text-align: left; max-width: 28rem; margin: 0.6rem auto 0; }
+
+/* ---- scegliere una carta del mazzo ---- */
+.deck-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
+.deck-pick {
+  --kc: var(--gold);
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 0 0.4rem;
+  text-align: left; cursor: pointer; color: var(--ink);
+  border: 1px solid var(--line); border-left: 5px solid var(--kc); border-radius: var(--radius-s);
+  background: var(--paper-grain), var(--bg-elev); box-shadow: var(--rule);
+  padding: 0.5rem 0.6rem;
+  transition: transform 90ms ease, border-color 90ms ease;
+}
+.deck-pick:hover { transform: translateY(-2px); border-color: var(--wax); border-left-color: var(--kc); }
+.deck-pick strong { font-family: var(--font-display); font-size: 0.9rem; }
+.deck-pick-meta { grid-column: 1; font-size: 0.8rem; color: var(--ink-faint); font-style: italic; }
+.deck-pick-n { grid-row: 1 / 3; grid-column: 2; align-self: center; font-family: var(--font-display); color: var(--gold); }
+
+/* ---- bottega ---- */
+.shop-goods { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.6rem; }
+.shop-item {
+  --kc: var(--gilt);
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem; text-align: center;
+  padding: 0.8rem 0.7rem; cursor: pointer; color: var(--ink);
+  border: 1px solid var(--line); border-top: 4px solid var(--kc); border-radius: var(--radius);
+  background: var(--paper-grain), var(--bg-elev); box-shadow: var(--rule);
+}
+.shop-item:hover:not(:disabled) { border-color: var(--wax); border-top-color: var(--kc); transform: translateY(-2px); }
+.shop-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.shop-item .bonus-text { font-size: 0.88rem; color: var(--ink-dim); }
+.shop-price {
+  margin-top: 0.2rem; font-family: var(--font-display); font-weight: 700; color: var(--gold);
+  border-top: 1px solid var(--line-soft); padding-top: 0.3rem; width: 100%;
+}
+.shop-item.is-sold .shop-price { color: var(--ink-faint); font-style: italic; }
+
+@media (max-width: 700px) {
+  .map { height: clamp(520px, 74vh, 680px); }
+  .node-icon { width: 2.3rem; height: 2.3rem; font-size: 1rem; }
+  .node-rivale .node-icon { width: 2.6rem; height: 2.6rem; }
+  .node-label { font-size: 0.64rem; }
+  .scene-card { margin-top: 2rem; padding-top: 2.2rem; }
+  .scene-choice { flex: 1 1 100%; }
+  .deck-picker { grid-template-columns: 1fr 1fr; }
+  .run-side { position: static; }
+}

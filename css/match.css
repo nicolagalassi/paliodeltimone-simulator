@@ -2,6 +2,11 @@
   max-width: 1000px;
   gap: 0.8rem;
   padding-block: 0.8rem;
+  /* La tirata sta tutta in uno schermo: il campo prende lo spazio che resta,
+     così la mano in basso è sempre raggiungibile. */
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ============ HUD ============ */
@@ -33,7 +38,7 @@
 .hud-hold {
   position: relative; width: 100%; max-width: 240px; height: 20px;
   border: 1px solid var(--line); border-radius: 99px;
-  background: var(--bg-elev); overflow: hidden;
+  background: var(--bg-elev); box-shadow: inset 0 1px 3px rgba(59, 38, 21, 0.25); overflow: hidden;
 }
 .hud-hold-fill {
   position: absolute; inset: 0 auto 0 0; width: 0%;
@@ -43,21 +48,16 @@
 .hud-hold span {
   position: absolute; inset: 0; display: grid; place-items: center;
   font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 0 3px rgba(255, 245, 220, 0.9);
 }
 .hud-team-b .hud-hold-fill { inset: 0 0 0 auto; }
 
-.hud-stamina {
-  width: 100%; max-width: 240px; height: 5px; border-radius: 99px;
-  background: var(--bg-elev-2); overflow: hidden;
+/* Energia della battuta: pubblica, così si può contare quella dell'avversario. */
+.hud-energy {
+  font-size: 0.7rem; letter-spacing: -0.05em; color: var(--gold);
+  min-height: 1em; line-height: 1;
 }
-.hud-stamina-fill {
-  height: 100%; width: 100%;
-  background: var(--sand);
-  transition: width 140ms linear, background 200ms ease;
-}
-.hud-team-b .hud-stamina-fill { margin-left: auto; }
-.hud-stamina-fill.is-low { background: var(--danger); }
+.hud-team-b .hud-energy { text-align: right; }
 
 .hud-clock { text-align: center; min-width: 118px; }
 .hud-time-row { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
@@ -72,7 +72,7 @@
 .pause-overlay {
   position: absolute; inset: 0;
   display: grid; place-items: center;
-  background: rgba(10, 8, 6, 0.72);
+  background: rgba(43, 27, 13, 0.55);
   backdrop-filter: blur(3px);
   border-radius: var(--radius);
 }
@@ -131,21 +131,36 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+/* Il riquadro del campo prende tutto lo spazio che resta. Il canvas lo misura e
+   ci si adatta da solo (vedi renderer.js): in pixel art l'ingrandimento deve
+   essere un numero intero, quindi la misura la decide lui, non il CSS. */
+.field-box {
+  position: relative;
+  flex: 1;
+  min-height: 120px;
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
+/* Il campo è una miniatura incorniciata: legno scuro e un filetto d'oro. */
 #field {
-  width: min(100%, 62vh);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  box-shadow: var(--shadow);
+  display: block;
+  border-radius: 2px;
+  outline: 5px solid var(--wood);
+  box-shadow: 0 0 0 7px var(--gilt), 0 0 0 8px var(--wood), var(--shadow);
   touch-action: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .match-overlay {
   position: absolute; inset: 0;
   display: grid; place-items: center;
-  background: rgba(10, 8, 6, 0.72);
+  background: rgba(43, 27, 13, 0.55);
   backdrop-filter: blur(3px);
   border-radius: var(--radius);
   animation: screen-in 200ms ease both;
@@ -153,7 +168,7 @@
 .match-overlay[hidden] { display: none; }
 .overlay-card {
   text-align: center;
-  background: var(--bg-elev);
+  background: var(--paper-grain), var(--bg-elev);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 1.6rem 2rem;
@@ -163,78 +178,250 @@
 .overlay-card h2 { font-size: 1.6rem; color: var(--oc, var(--sand)); }
 .overlay-card p { color: var(--ink-dim); margin: 0.6rem 0 1.2rem; font-size: 0.9rem; }
 
-/* ============ comandi ============ */
-/* A due giocatori i due set di comandi stanno fianco a fianco: il primo a
- * sinistra, il secondo a destra, come le mani sulla tastiera. In solitario è
- * visibile solo il pannello sinistro, che si prende tutta la larghezza. */
-.commands-area {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-}
-.cmd-player {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.cmd-player[hidden] { display: none; }
-.cmd-player-label {
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-dim);
-  text-transform: uppercase;
-}
-.cmd-player-label[hidden] { display: none; }
+/* ============ tirata a carte ============ */
+.hud-battuta { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); }
+.hud-battuta b { color: var(--sand); }
 
-.commands {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+.hand-area { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: flex-start; }
+.hand-player { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.hand-player[hidden] { display: none; }
+.hand-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.hand-label {
+  font-family: var(--font-display); font-size: 0.72rem; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-dim);
 }
-@media (max-width: 700px) {
-  .commands { grid-template-columns: repeat(2, 1fr); }
-  /* Sullo schermo stretto due pannelli da quattro non ci stanno affiancati:
-     si impilano, il giocatore 1 sopra e il giocatore 2 sotto. */
-  .commands-area { flex-direction: column; }
-}
+.hand-status { font-size: 0.74rem; color: var(--ink-faint); text-align: right; }
+.hand-status.is-ready { color: var(--ok); }
 
-.commands-hint {
-  text-align: center;
-  font-size: 0.76rem;
-  color: var(--ink-faint);
-  min-height: 1.2em;
-  margin-top: -0.2rem;
+/* Energia e linea dei cinque secondi: la sequenza che si sta componendo. */
+.hand-plan { display: flex; align-items: center; gap: 0.6rem; }
+.hand-energy { display: flex; align-items: center; gap: 0.1rem; flex: none; }
+.pip { font-size: 0.8rem; opacity: 0.22; filter: grayscale(1); }
+.pip.is-on { opacity: 1; filter: none; }
+.pip-count { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); margin-left: 0.3rem; }
+.hand-timeline {
+  flex: 1; min-width: 0; display: flex; gap: 2px; height: 1.6rem;
+  border: 1px solid var(--line-soft); border-radius: var(--radius-s); padding: 2px;
+  background: var(--bg-elev);
+}
+.tl-block {
+  --kc: var(--gold);
+  flex-basis: 0; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  border: none; border-radius: 3px; cursor: pointer; padding: 0 0.3rem;
+  background: color-mix(in srgb, var(--kc) 62%, #fff8e6); color: var(--ink);
+  font-size: 0.74rem; font-weight: 600;
+}
+.tl-block:disabled { cursor: default; }
+.tl-free {
+  flex-basis: 0; min-width: 0; display: grid; place-items: center; overflow: hidden; white-space: nowrap;
+  font-size: 0.62rem; color: var(--ink-faint);
+  background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 1px), var(--line-soft) calc(20% - 1px) 20%);
 }
 
-/* Il comando che, con l'orientamento attuale, avvicina il palo alla zona. */
-.cmd.is-toward { border-color: rgba(233, 30, 120, 0.75); }
-.cmd.is-toward::after {
-  content: "→ palio";
-  font-size: 0.58rem;
-  letter-spacing: 0.06em;
-  color: #ff86bd;
-  margin-top: 0.1rem;
+.hand-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 0.45rem; }
+.hand-actions { display: flex; gap: 0.4rem; justify-content: flex-end; flex-wrap: wrap; }
+.hand-btn, .card, .tl-block, .bonus-option { -webkit-tap-highlight-color: transparent; }
+.hand-btn {
+  border: 1px solid var(--line); border-radius: var(--radius-s); box-shadow: var(--rule);
+  font-family: var(--font-display); font-weight: 600;
+  background: var(--bg-elev); color: var(--ink); padding: 0.35rem 0.85rem; cursor: pointer; font-size: 0.8rem;
 }
-.cmd.is-toward.is-active::after { color: #7d1741; }
-.cmd {
-  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
-  border: 1px solid var(--line); border-radius: var(--radius-s);
-  background: var(--bg-elev); padding: 0.55rem 0.4rem;
-  cursor: pointer; text-align: center;
+.hand-btn:disabled { opacity: 0.4; cursor: default; }
+.hand-btn[hidden] { display: none; }
+.hand-go {
+  background: radial-gradient(120% 140% at 30% 20%, var(--wax-hi), var(--wax) 60%, #5e1010);
+  color: #f6e7c4; border-color: #5e1010; font-family: var(--font-display); font-weight: 700; letter-spacing: 0.04em;
+}
+
+.card {
+  --kc: var(--gold);
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  min-height: 96px; padding: 1.15rem 0.35rem 0.45rem;
+  border: 1px solid var(--line); border-top: 4px solid var(--kc); border-radius: var(--radius-s);
+  background: var(--paper-grain), var(--bg-elev); color: var(--ink); text-align: center; cursor: pointer;
+  box-shadow: var(--rule), 0 2px 4px rgba(59, 38, 21, 0.18);
   user-select: none; -webkit-user-select: none; touch-action: manipulation;
-  transition: background 90ms ease, border-color 90ms ease, transform 90ms ease;
+  transition: transform 90ms ease, border-color 90ms ease, background 90ms ease, opacity 90ms ease;
 }
-.cmd strong { font-size: 0.82rem; }
-.cmd em { font-style: normal; font-size: 0.64rem; color: var(--ink-faint); }
-.cmd:hover { border-color: var(--gold); }
-.cmd.is-active {
-  background: linear-gradient(180deg, var(--sand), var(--gold));
-  color: #2a2013; border-color: #b8912f; transform: translateY(1px);
+.card:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--kc); }
+.card:disabled { cursor: default; }
+.card-push, .tl-block.card-push, .deck-item.card-push, .bonus-option.card-push { --kc: #c48f22; }
+.card-pull, .tl-block.card-pull, .deck-item.card-pull, .bonus-option.card-pull { --kc: #3f73bf; }
+.card-sotto, .tl-block.card-sotto, .deck-item.card-sotto, .bonus-option.card-sotto { --kc: #8457b8; }
+.card-hold, .tl-block.card-hold, .deck-item.card-hold, .bonus-option.card-hold { --kc: #4f9a3e; }
+.card-brake, .tl-block.card-brake, .deck-item.card-brake, .bonus-option.card-brake { --kc: #85775d; }
+.card::before { font-size: 1rem; line-height: 1; color: var(--kc); }
+.card[data-type="spinta"]::before, .bonus-option[data-type="spinta"]::before { content: "→"; }
+.card[data-type="spallata"]::before, .bonus-option[data-type="spallata"]::before { content: "⇒"; }
+.card[data-type="carica"]::before, .bonus-option[data-type="carica"]::before { content: "⟹"; }
+.card[data-type="tirata"]::before, .bonus-option[data-type="tirata"]::before { content: "←"; }
+.card[data-type="strattone"]::before, .bonus-option[data-type="strattone"]::before { content: "⇐"; }
+.card[data-type="tenuta"]::before, .bonus-option[data-type="tenuta"]::before { content: "◎"; }
+.card[data-type="ancora"]::before, .bonus-option[data-type="ancora"]::before { content: "⚓"; }
+.card[data-type="sotto"]::before, .bonus-option[data-type="sotto"]::before { content: "↻"; }
+.card[data-type="lampo"]::before, .bonus-option[data-type="lampo"]::before { content: "↯"; }
+.card[data-type="freno"]::before { content: "■"; }
+.card.is-covered::before { content: none; }
+.card-cost, .card-dur {
+  position: absolute; top: 4px; font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-dim);
 }
-.cmd.is-active em { color: rgba(42, 32, 19, 0.7); }
-.cmd.is-active kbd { background: rgba(255, 255, 255, 0.35); color: #2a2013; border-color: rgba(0, 0, 0, 0.2); }
-.cmd.is-cooling { opacity: 0.45; }
+.card-cost { left: 6px; color: var(--gold); }
+.card-dur { right: 6px; }
+.card-key {
+  position: absolute; bottom: 3px; right: 6px;
+  font-family: var(--font-mono); font-size: 0.58rem; color: var(--ink-faint);
+}
+.card-name { font-family: var(--font-display); font-size: 0.82rem; font-weight: 700; }
+.card-effect { font-style: italic; font-size: 0.74rem; color: var(--ink-dim); line-height: 1.2; }
+.card-toward { font-size: 0.6rem; letter-spacing: 0.04em; color: var(--wax); font-style: italic; }
+.card.is-toward { border-color: var(--wax-hi); }
+.card.is-blocked { opacity: 0.38; }
+.card.is-queued {
+  background: var(--paper-grain), color-mix(in srgb, var(--kc) 28%, #f6e9c8);
+  box-shadow: inset 0 0 0 2px var(--kc), 0 3px 8px rgba(59, 38, 21, 0.25);
+  transform: translateY(-3px);
+}
+.card-order {
+  position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+  min-width: 1.2rem; height: 1.2rem; border-radius: 99px; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, var(--wax-hi), var(--wax) 65%, #5e1010);
+  color: #f6e7c4; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.card.is-covered {
+  justify-content: center; padding-top: 0.45rem;
+  background: repeating-linear-gradient(45deg, var(--bg-elev-2) 0 6px, var(--bg-elev) 6px 12px);
+  border-top-color: var(--line);
+}
+.card-back { font-size: 1.2rem; color: var(--line); }
+
+/* Le due sequenze scoperte, in basso sul campo: la zona è in alto e va lasciata libera. */
+/* ---- il duello: le due sequenze allineate sul tempo della battuta ---- */
+.duel {
+  flex: none;
+  background: var(--paper-grain), var(--bg-elev);
+  box-shadow: var(--rule);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem 0.3rem;
+}
+.duel-head {
+  display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.3rem;
+  font-size: 0.7rem; color: var(--ink-faint); min-width: 0;
+}
+.duel-title {
+  font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink);
+  white-space: nowrap;
+}
+.duel-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 1fr) 4.2rem;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.duel-who {
+  font-size: 0.74rem; font-weight: 600; color: var(--tc, var(--ink));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.duel-you { font-weight: 400; color: var(--ink-faint); }
+.duel-track {
+  display: flex; gap: 2px; height: 1.7rem; min-width: 0;
+  border-radius: 6px; overflow: hidden;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 1px), var(--line) calc(20% - 1px) 20%);
+}
+.duel-block {
+  flex-basis: 0; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 600; color: var(--ink);
+  background: color-mix(in srgb, var(--kc, #a99a80) 62%, #fff8e6);
+  border-radius: 4px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  opacity: 0.55;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.duel-block.is-past { opacity: 0.8; }
+.duel-block.is-now { opacity: 1; box-shadow: inset 0 0 0 2px var(--ink); }
+.duel-block.is-misfire {
+  background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.28) 0 4px, transparent 4px 8px);
+}
+.duel-block.is-free {
+  background: transparent; color: var(--ink-faint); font-weight: 400; font-style: italic;
+  border: 1px dashed var(--line);
+}
+.duel-block.is-free.is-now { box-shadow: inset 0 0 0 1px var(--ink-faint); }
+.duel-delta {
+  font-size: 0.78rem; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
+  color: var(--ink-faint);
+}
+.duel-delta.is-gain { color: var(--ok); }
+.duel-delta.is-loss { color: var(--danger); }
+.duel-delta.is-zone { color: var(--gold); }
+/* Posti fissi nella griglia: il cursore, che sta sopra le due tracce, non deve
+   spingere fuori posto il resto. */
+#duel-who-a { grid-area: 1 / 1; }
+#duel-track-a { grid-area: 1 / 2; }
+#duel-delta-a { grid-area: 1 / 3; }
+#duel-who-b { grid-area: 2 / 1; }
+#duel-track-b { grid-area: 2 / 2; }
+#duel-delta-b { grid-area: 2 / 3; }
+.duel-scale {
+  grid-area: 3 / 2; display: flex; justify-content: space-between;
+  font-size: 0.55rem; color: var(--ink-faint); line-height: 1;
+}
+/* Il cursore scorre sulla colonna delle tracce, sopra entrambe le righe. */
+.duel-playhead {
+  grid-area: 1 / 2 / 3 / 3; align-self: stretch; justify-self: stretch;
+  position: relative; pointer-events: none;
+  --p: 0;
+}
+.duel-playhead::before {
+  content: ""; position: absolute; top: -3px; bottom: -3px;
+  left: calc(var(--p) * 100%); width: 2px; margin-left: -1px;
+  background: var(--wax); box-shadow: 0 0 0 1px rgba(255, 245, 220, 0.8);
+  border-radius: 1px;
+}
+.duel.is-idle .duel-playhead { display: none; }
+
+.battuta-log {
+  flex-basis: 100%; list-style: none; margin: 0; padding: 0;
+  display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: thin;
+}
+.battuta-log li {
+  flex: none; display: flex; gap: 0.3rem; align-items: baseline;
+  font-size: 0.66rem; color: var(--ink-faint);
+  border: 1px solid var(--line-soft); border-radius: var(--radius-s); padding: 0.15rem 0.45rem;
+}
+.battuta-log li b { font-family: var(--font-mono); color: var(--ink-dim); }
+.battuta-log li span { color: var(--tc); }
+.battuta-log .log-star { color: var(--gold); }
+
+/* ============ bonus ============ */
+.bonus-overlay {
+  /* A tutto schermo: tre bonus non ci stanno nel solo campo, sul telefono. */
+  position: fixed; inset: 0; display: grid; place-items: center;
+  background: rgba(43, 27, 13, 0.6); backdrop-filter: blur(2px); z-index: 30;
+  padding: 0.8rem;
+}
+.bonus-overlay[hidden] { display: none; }
+.bonus-card-wrap { max-width: min(720px, 100%); max-height: 100%; overflow-y: auto; }
+.bonus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.7rem; }
+.bonus-option {
+  display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center;
+  padding: 0.9rem 0.8rem; cursor: pointer;
+  border: 1px solid var(--line); border-top: 4px solid var(--kc); border-radius: var(--radius);
+  background: var(--paper-grain), var(--bg-elev); color: var(--ink); box-shadow: var(--rule);
+  transition: transform 90ms ease, border-color 90ms ease;
+}
+.bonus-option:hover { transform: translateY(-3px); border-color: var(--kc); }
+:where(.bonus-option) { --kc: var(--gold); }
+.bonus-option.is-effect { --kc: var(--gilt); background: var(--paper-grain), linear-gradient(180deg, #f8edd2, var(--bg-elev)); }
+.bonus-option::before { font-size: 1.3rem; color: var(--kc); }
+.bonus-option.is-effect::before { content: "★"; }
+.bonus-kind { font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.bonus-name { font-family: var(--font-display); font-size: 1rem; }
+.bonus-cost { font-family: var(--font-mono); font-size: 0.7rem; color: var(--gold); }
+.bonus-text { font-size: 0.9rem; color: var(--ink-dim); line-height: 1.35; }

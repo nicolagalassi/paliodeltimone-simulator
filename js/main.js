@@ -1,36 +1,50 @@
 /**
- * Bootstrap: scelta fazione → draft → torneo → tirate.
+ * Bootstrap: scelta del quartiere e della modalità → primo bonus → Cammino del
+ * Palio (roguelike, vedi run/flow.js) oppure torneo → tirate.
  *
- * Tutte le partite, giocate o simulate, passano dallo stesso motore fisico:
- * gli incontri fra IA girano headless con `simulateFixture`.
+ * Il torneo è una run: tutte le squadre partono uguali, con lo stesso mazzo, e
+ * crescono con i bonus guadagnati nella Zona Palio. Mazzo e bonus di ciascun
+ * quartiere stanno nello stato del torneo (`state.run`) e si portano da una
+ * tirata all'altra — anche quelli che le IA guadagnano fra loro.
  */
 
-import { FACTIONS, getFaction, STAT_LABEL } from './data/factions.js';
-import { generateFormationPool, generateAiRoster } from './core/roster.js';
+import { FACTIONS, getFaction } from './data/factions.js';
 import { makeRng, randomSeed } from './core/rng.js';
 import {
-  getState, setState, mutate, newTournamentState, loadSave, clearSave, getPreset, PRESETS,
+  getState, setState, mutate, newTournamentState, loadSave, clearSave, getCardPreset,
 } from './core/state.js';
 import {
   buildSchedule, ALL_FACTION_IDS, recordResult, currentDay, isGroupComplete,
   computeStandings, buildFinals, nextFinal, isFinalsComplete, allFixtures,
 } from './core/tournament.js';
 import { showScreen, el } from './ui/screens.js';
-import { mountRoster } from './ui/rosterUI.js';
 import { renderTournament } from './ui/calendarUI.js';
-import { playMatch, simulateFixture, buildTeam } from './match/match.js';
+import { renderBonusChoice, deckList } from './ui/bonusUI.js';
+import { buildTeam } from './match/match.js';
+import { playCardMatch } from './cards/cardMatch.js';
+import { simulateCardFixture } from './cards/cardSim.js';
+import { startCammino, resumeCammino } from './run/flow.js';
+import { BASE_DECK } from './cards/cards.js';
+import {
+  newLoadout, grantBonus, offerBonuses, aiPickBonus,
+} from './cards/bonus.js';
 
 const $ = (id) => document.getElementById(id);
 
 let selectedFaction = null;
 let selectedPreset = 'rapida';
-let selectedMode = 'single';       // 'single' | 'duo'
+let selectedMode = 'cammino';      // 'cammino' | 'single' | 'duo'
+let picks = [];                    // quartieri scelti dagli umani, in ordine di giocatore
 
-// Scelte di draft accumulate: uno solo a giocatore singolo, due in coppia.
-let picks = [];                    // [{ factionId, roster }]
-let draftSeed = null;              // seme della prima rosa, riusato come seme torneo
+/** Come chiama un quartiere quando lo si affronta. */
+const STYLE_LABEL = {
+  aggressivo: 'chiamatore aggressivo: spinge e carica',
+  calcolatore: 'chiamatore calcolatore: gioca il colpo giusto',
+  agile: 'chiamatore agile: passa sotto e rimescola',
+  metodico: 'chiamatore metodico: tiene e frena',
+};
 
-/* ==================== schermata fazione ==================== */
+/* ==================== schermata del quartiere ==================== */
 
 /**
  * Disegna la scelta del quartiere. In coppia la si mostra due volte: al secondo
@@ -48,7 +62,7 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
 
   // Modalità, formato e ripresa si scelgono una volta sola, al primo giocatore.
   $('mode-bar').hidden = !firstPick;
-  $('preset-options').closest('.preset-bar').hidden = !firstPick;
+  $('format-bar').hidden = !firstPick;
 
   for (const f of FACTIONS) {
     const card = el('button', 'faction-card');
@@ -56,15 +70,16 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
     card.style.setProperty('--fc', f.color);
     card.dataset.id = f.id;
 
-    const crest = el('div', 'faction-crest');
-    const name = el('div', 'faction-name', f.name);
-    const color = el('div', 'faction-color', f.colorName);
     const bonus = el('div', 'faction-bonus');
-    bonus.append(
-      el('strong', null, `+10% ${bonusLabel(f.bonusStat)}`),
-      el('div', null, f.motto),
+    bonus.append(el('strong', null, STYLE_LABEL[f.aiStyle] ?? ''), el('div', null, f.motto));
+    const crest = el('div', 'faction-crest');
+    crest.dataset.initial = f.name.split(' ').map((w) => w[0]).join('');
+    card.append(
+      crest,
+      el('div', 'faction-name', f.name),
+      el('div', 'faction-color', f.colorName),
+      bonus,
     );
-    card.append(crest, name, color, bonus);
 
     if (taken.includes(f.id)) {
       card.disabled = true;
@@ -87,15 +102,18 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
   const save = firstPick ? loadSave() : null;
   resume.hidden = !save;
   if (save) {
-    const who = save.mode === 'duo'
-      ? save.humans.map((id) => getFaction(id).name).join(' e ')
-      : getFaction(save.factionId).name;
-    resume.textContent = `Riprendi torneo · ${who}`;
-    resume.onclick = () => { setState(save, { save: false }); goToTournament(); };
+    const who = save.humans.map((id) => getFaction(id).name).join(' e ');
+    if (save.kind === 'cammino') {
+      resume.textContent = `Riprendi il cammino · ${who}`;
+      resume.onclick = () => resumeCammino(save, backToStart);
+    } else {
+      resume.textContent = `Riprendi torneo · ${who}`;
+      resume.onclick = () => { setState(save, { save: false }); goToTournament(); };
+    }
   }
 
   $('btn-faction-confirm').onclick = () => {
-    if (selectedFaction) startDraft(selectedFaction, playerNo);
+    if (selectedFaction) onFactionChosen(selectedFaction);
   };
 }
 
@@ -117,29 +135,10 @@ function wireModeAndPreset() {
   }
 }
 
-const bonusLabel = (stat) => STAT_LABEL[stat] ?? stat;
+function onFactionChosen(factionId) {
+  picks.push(factionId);
 
-/* ==================== draft ==================== */
-
-function startDraft(factionId, playerNo) {
-  draftSeed = draftSeed ?? randomSeed();
-  // Ogni giocatore pesca dal proprio mazzo: due rose non si contendono gli
-  // stessi tiratori. Il primo seme è anche quello del torneo.
-  const poolSeed = playerNo === 1 ? draftSeed : (draftSeed ^ 0x9e3779b1) >>> 0;
-  const pool = generateFormationPool(poolSeed);
-  mountRoster({
-    pool,
-    factionId,
-    playerNo: selectedMode === 'duo' ? playerNo : null,
-    onConfirm: (roster) => onDraftDone(factionId, roster),
-  });
-  showScreen('roster');
-}
-
-function onDraftDone(factionId, roster) {
-  picks.push({ factionId, roster });
-
-  // In coppia, dopo la prima rosa si torna alla scelta per il secondo giocatore.
+  // In coppia, dopo il primo quartiere si torna alla scelta per il secondo giocatore.
   if (selectedMode === 'duo' && picks.length === 1) {
     selectedFaction = null;
     $('btn-faction-confirm').disabled = true;
@@ -147,28 +146,68 @@ function onDraftDone(factionId, roster) {
     showScreen('faction');
     return;
   }
+  startRun();
+}
 
-  startTournament();
+/* ==================== primo bonus ==================== */
+
+/** Fa scegliere il primo bonus a un giocatore umano; risolve con l'id scelto. */
+function chooseFirstBonus({ factionId, playerNo, loadout, rng }) {
+  return new Promise((resolve) => {
+    const faction = getFaction(factionId);
+    document.documentElement.style.setProperty('--fc', faction.color);
+    $('bonus-title').textContent = selectedMode === 'duo'
+      ? `Giocatore ${playerNo} · ${faction.name}: il primo bonus`
+      : `${faction.name}: il primo bonus`;
+    $('deck-preview').replaceChildren(deckList(loadout.deck));
+    renderBonusChoice($('bonus-grid'), offerBonuses(loadout, rng), resolve);
+    showScreen('bonus');
+  });
+}
+
+/**
+ * Prepara la run: ogni quartiere ha il mazzo base; le IA scelgono subito il loro
+ * primo bonus, gli umani lo scelgono a schermo, uno alla volta.
+ */
+async function startRun() {
+  const seed = randomSeed();
+  const rng = makeRng(seed ^ 0x5bd1e995);
+
+  if (selectedMode === 'cammino') {
+    const loadout = newLoadout(BASE_DECK);
+    grantBonus(loadout, await chooseFirstBonus({ factionId: picks[0], playerNo: 1, loadout, rng }));
+    startCammino({
+      seed, presetId: selectedPreset, factionId: picks[0], loadout, exit: backToStart,
+    });
+    return;
+  }
+
+  const run = {};
+  for (const id of ALL_FACTION_IDS) {
+    run[id] = newLoadout(BASE_DECK);
+    if (!picks.includes(id)) {
+      grantBonus(run[id], aiPickBonus(offerBonuses(run[id], rng), getFaction(id).aiStyle, rng));
+    }
+  }
+  for (let k = 0; k < picks.length; k++) {
+    const id = await chooseFirstBonus({ factionId: picks[k], playerNo: k + 1, loadout: run[picks[k]], rng });
+    grantBonus(run[picks[k]], id);
+  }
+  startTournament(seed, run);
 }
 
 /* ==================== torneo ==================== */
 
-function startTournament() {
-  const seed = draftSeed ?? randomSeed();
-  const humans = picks.map((p) => p.factionId);
-
+function startTournament(seed, run) {
+  const humans = picks.slice();
   const teams = {};
   for (const id of ALL_FACTION_IDS) {
     const humanIdx = humans.indexOf(id);
-    teams[id] = humanIdx >= 0
-      ? { factionId: id, roster: picks[humanIdx].roster, isPlayer: true, playerNo: humanIdx + 1 }
-      : { factionId: id, roster: generateAiRoster(seed + hashId(id), id), isPlayer: false };
+    teams[id] = { factionId: id, isPlayer: humanIdx >= 0, playerNo: humanIdx + 1 || null };
   }
-
   const schedule = buildSchedule(ALL_FACTION_IDS, seed);
   setState(newTournamentState({
-    seed, factionId: humans[0], roster: picks[0].roster, presetId: selectedPreset,
-    teams, schedule, mode: selectedMode, humans,
+    seed, presetId: selectedPreset, teams, schedule, mode: selectedMode, humans, run,
   }));
   goToTournament();
 }
@@ -198,12 +237,10 @@ function refreshStage(state) {
 
 const teamCache = new Map();
 
-function engineTeam(state, factionId) {
-  const key = `${state.seed}:${factionId}`;
-  if (!teamCache.has(key)) {
-    teamCache.set(key, buildTeam(factionId, state.teams[factionId].roster));
-  }
-  return teamCache.get(key);
+/** La squadra pronta per il motore: la stessa formazione per tutti. */
+function engineTeam(factionId) {
+  if (!teamCache.has(factionId)) teamCache.set(factionId, buildTeam(factionId));
+  return teamCache.get(factionId);
 }
 
 function fixtureSeed(state, fixture) {
@@ -211,15 +248,16 @@ function fixtureSeed(state, fixture) {
 }
 
 /**
- * Risolve un incontro senza rendering, con lo stesso motore del match giocato.
- * Vale per qualsiasi incontro, comprese le tirate del giocatore: in quel caso
- * a chiamare è lo stile IA del suo quartiere, sulla sua rosa.
+ * Risolve un incontro senza disegnarlo, con le stesse regole di quello giocato:
+ * le due IA chiamano con i loro mazzi e i loro bonus, e quelli che guadagnano
+ * in zona restano a loro per il resto del torneo.
  */
 function resolveFixture(state, fixture) {
-  const result = simulateFixture({
-    homeTeam: engineTeam(state, fixture.home),
-    awayTeam: engineTeam(state, fixture.away),
-    preset: getPreset(state),
+  const result = simulateCardFixture({
+    homeTeam: engineTeam(fixture.home),
+    awayTeam: engineTeam(fixture.away),
+    loadouts: [state.run[fixture.home], state.run[fixture.away]],
+    ...getCardPreset(state),
     seed: fixtureSeed(state, fixture),
   });
   recordResult(fixture, result);
@@ -230,29 +268,17 @@ function resolveFixture(state, fixture) {
 const isHuman = (state, id) => state.humans.includes(id);
 // Numero del giocatore (1 o 2) che chiama un quartiere umano.
 const humanNoOf = (state, id) => state.humans.indexOf(id) + 1;
-// Schema di tasti: a giocatore singolo tutti gli alias, in coppia lettere al
-// primo e frecce al secondo.
-function keysFor(state, id) {
-  if (state.mode !== 'duo') return 'solo';
-  return humanNoOf(state, id) === 2 ? 'p2' : 'p1';
-}
 
 /** Costruisce i controllori dei due lati e avvia la tirata giocata. */
 function playFixture(state, fixture, homeHuman, awayHuman) {
-  const controllers = [
-    homeHuman
-      ? { type: 'human', playerNo: humanNoOf(state, fixture.home), keys: keysFor(state, fixture.home) }
-      : { type: 'ai' },
-    awayHuman
-      ? { type: 'human', playerNo: humanNoOf(state, fixture.away), keys: keysFor(state, fixture.away) }
-      : { type: 'ai' },
-  ];
-  return playMatch({
-    homeTeam: engineTeam(state, fixture.home),
-    awayTeam: engineTeam(state, fixture.away),
-    controllers,
+  const side = (id, human) => (human ? { type: 'human', playerNo: humanNoOf(state, id) } : { type: 'ai' });
+  return playCardMatch({
+    homeTeam: engineTeam(fixture.home),
+    awayTeam: engineTeam(fixture.away),
+    loadouts: [state.run[fixture.home], state.run[fixture.away]],
+    controllers: [side(fixture.home, homeHuman), side(fixture.away, awayHuman)],
     duo: state.mode === 'duo',
-    preset: getPreset(state),
+    ...getCardPreset(state),
     seed: fixtureSeed(state, fixture),
     title: `${getFaction(fixture.home).name} – ${getFaction(fixture.away).name}`,
   });
@@ -283,7 +309,7 @@ async function onPlayNext() {
   const awayHuman = isHuman(state, fixture.away);
 
   if (!homeHuman && !awayHuman) {
-    // Finale fra sole IA: si risolve headless.
+    // Finale fra sole IA: si risolve senza disegnarla.
     resolveFixture(state, fixture);
   } else {
     showScreen('match');
@@ -299,7 +325,7 @@ async function onPlayNext() {
 
 /**
  * Porta il torneo alla conclusione senza scendere in campo: risolve tutte le
- * tirate rimaste, comprese quelle del giocatore, e assegna il podio.
+ * tirate rimaste, comprese quelle dei giocatori, e assegna il podio.
  *
  * Le finali si costruiscono solo a girone chiuso, quindi il girone va risolto
  * per intero prima di sapere chi le disputa: `refreshStage` in mezzo non è
@@ -327,7 +353,7 @@ async function onSimulateAll() {
     + (state.finals ? [state.finals.third, state.finals.first].filter((f) => !f.played).length : 2);
   const ok = confirm(
     `Simulare le ${restanti} tirate che restano?\n\n`
-    + 'Anche le tirate dei giocatori le chiamerà l’IA, sulle rose composte. '
+    + 'Anche le tirate dei giocatori le chiamerà l’IA, con i loro mazzi e i loro bonus. '
     + 'Il torneo arriverà al podio e non sarà più giocabile.',
   );
   if (!ok) return;
@@ -385,7 +411,6 @@ function backToStart() {
   teamCache.clear();
   selectedFaction = null;
   picks = [];
-  draftSeed = null;
   $('btn-faction-confirm').disabled = true;
   renderFactionScreen();
   showScreen('faction');
