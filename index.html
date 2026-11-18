@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="css/run.css">
 <link rel="stylesheet" href="css/mobile.css">
 <meta name="theme-color" content="#e6d3a7">
-<meta name="description" content="Il Palio del Timone a carte: chiamate coperte, scoperte insieme, e un torneo in cui ogni secondo nella Zona Palio vale un bonus.">
+<meta name="description" content="Il Palio del Timone a carte: un cammino roguelike per le vie di Massa Lombarda, con chiamate coperte scoperte insieme e il Palio sotto la Torre dell’Orologio.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2312100d'/><path d='M16 5v22M5 16h22' stroke='%23f2dfa8' stroke-width='3'/><circle cx='16' cy='16' r='3' fill='%23d8ad4c'/></svg>">
 </head>
 <body>
@@ -22,41 +22,14 @@
 <section class="screen" id="screen-faction" data-screen="faction">
   <header class="screen-head">
     <h1 class="title" id="faction-title">Palio del Timone</h1>
-    <p class="subtitle" id="faction-subtitle">Scegli il quartiere che chiamerai alla tirata.</p>
+    <p class="subtitle" id="faction-subtitle">Scegli il quartiere che accompagnerai lungo il Cammino del Palio.</p>
   </header>
 
   <div class="faction-grid" id="faction-grid"></div>
 
-  <div class="preset-bar" id="mode-bar">
-    <span class="preset-label">Modalità</span>
-    <div class="preset-options" id="mode-options">
-      <button type="button" class="preset-btn is-active" data-mode="cammino">
-        <strong>Il Cammino</strong><span>1 giocatore · mappa a bivi verso il Palio</span>
-      </button>
-      <button type="button" class="preset-btn" data-mode="single">
-        <strong>Torneo</strong><span>1 giocatore · girone e finali</span>
-      </button>
-      <button type="button" class="preset-btn" data-mode="duo">
-        <strong>Torneo in due</strong><span>stesso schermo · due quartieri</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="preset-bar" id="format-bar">
-    <span class="preset-label">Formato della tirata (torneo)</span>
-    <div class="preset-options" id="preset-options">
-      <button type="button" class="preset-btn is-active" data-preset="rapida">
-        <strong>Breve</strong><span>8 battute · 5 s in zona</span>
-      </button>
-      <button type="button" class="preset-btn" data-preset="regolamentare">
-        <strong>Regolamentare</strong><span>12 battute · 6 s in zona</span>
-      </button>
-    </div>
-  </div>
-
   <footer class="screen-foot">
-    <button type="button" class="btn btn-primary" id="btn-faction-confirm" disabled>Conferma quartiere</button>
-    <button type="button" class="btn btn-ghost" id="btn-continue-save" hidden>Riprendi torneo salvato</button>
+    <button type="button" class="btn btn-primary" id="btn-faction-confirm" disabled>Comincia il cammino</button>
+    <button type="button" class="btn btn-ghost" id="btn-continue-save" hidden>Riprendi il cammino</button>
   </footer>
 </section>
 
@@ -66,7 +39,7 @@
     <h1 class="title" id="bonus-title">Il primo bonus</h1>
     <p class="subtitle" id="bonus-subtitle">
       Tutte le squadre partono uguali, con lo stesso mazzo. Scegli il vantaggio con cui
-      cominciare il Palio: resterà per tutto il torneo.
+      cominciare il cammino: resterà fino al Palio.
     </p>
   </header>
 
@@ -120,34 +93,6 @@
     <div class="scene-body" id="scene-body"></div>
     <div class="scene-actions" id="scene-actions"></div>
   </div>
-</section>
-
-<!-- ============ SCHERMATA: CALENDARIO / TORNEO ============ -->
-<section class="screen" id="screen-tournament" data-screen="tournament" hidden>
-  <header class="screen-head screen-head-row">
-    <div>
-      <h1 class="title" id="tournament-title">Torneo</h1>
-      <p class="subtitle" id="tournament-subtitle"></p>
-    </div>
-    <button type="button" class="btn btn-ghost btn-sm" id="btn-abandon">Abbandona torneo</button>
-  </header>
-
-  <div class="tournament-layout">
-    <div class="calendar-panel">
-      <h2 class="panel-title">Calendario</h2>
-      <div class="calendar" id="calendar"></div>
-    </div>
-    <aside class="standings-panel">
-      <h2 class="panel-title">Classifica</h2>
-      <table class="standings" id="standings"></table>
-      <div class="my-squad" id="my-squad"></div>
-    </aside>
-  </div>
-
-  <footer class="screen-foot">
-    <button type="button" class="btn btn-ghost" id="btn-sim-all">Simula il resto del torneo</button>
-    <button type="button" class="btn btn-primary" id="btn-play-next">Gioca la prossima tirata</button>
-  </footer>
 </section>
 
 <!-- ============ SCHERMATA: TIRATA ============ -->
@@ -232,7 +177,6 @@
     </div>
   </div>
 
-  <!-- Una mano per ogni Chiamatore umano. -->
   <div class="hand-area" id="hand-area">
     <!-- Ciò che si sa prima di chiamare: l'intenzione dell'IA e l'imprevisto. -->
     <div class="battuta-info" id="battuta-info" hidden></div>
@@ -247,25 +191,8 @@
       </div>
       <div class="hand-cards" id="hand-cards-a"></div>
       <div class="hand-actions">
-        <button type="button" class="hand-btn" id="hand-peek-a" hidden>Guarda le carte</button>
         <button type="button" class="hand-btn" id="hand-undo-a">Togli l'ultima</button>
         <button type="button" class="hand-btn hand-go" id="hand-go-a">Chiama</button>
-      </div>
-    </div>
-    <div class="hand-player" id="hand-player-b" hidden>
-      <div class="hand-head">
-        <span class="hand-label" id="hand-label-b">Giocatore 2</span>
-        <span class="hand-status" id="hand-status-b"></span>
-      </div>
-      <div class="hand-plan">
-        <span class="hand-energy" id="hand-energy-b"></span>
-        <div class="hand-timeline" id="hand-timeline-b"></div>
-      </div>
-      <div class="hand-cards" id="hand-cards-b"></div>
-      <div class="hand-actions">
-        <button type="button" class="hand-btn" id="hand-peek-b" hidden>Guarda le carte</button>
-        <button type="button" class="hand-btn" id="hand-undo-b">Togli l'ultima</button>
-        <button type="button" class="hand-btn hand-go" id="hand-go-b">Chiama</button>
       </div>
     </div>
     <ol class="battuta-log" id="battuta-log"></ol>

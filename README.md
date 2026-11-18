@@ -1,16 +1,11 @@
 # Palio del Timone — Simulatore
 
-Il **Palio del Timone** come gioco di carte tattico: si sceglie un quartiere e si
-chiamano le tirate a carte coperte. Due modi di giocarlo:
-
-- **Il Cammino del Palio** (1 giocatore) — una run roguelike: una mappa a bivi
-  di tirate, eventi, botteghe e osterie che sale fino al Palio, con tre cuori da
-  non perdere;
-- **Il Torneo** (1 o 2 giocatori) — girone all'italiana fra i quattro quartieri
-  e finali.
-
-In entrambi ogni secondo passato nella Zona Palio vale un passo verso un nuovo
-bonus, e i bonus restano per tutta la run.
+Il **Palio del Timone** come gioco di carte tattico per un giocatore: si sceglie
+un quartiere e si percorre **il Cammino del Palio**, una run roguelike su una
+mappa a bivi per i luoghi di Massa Lombarda — tirate, eventi, il mercato, il
+lavatoio, la chiesa di San Paolo — fino al Palio sotto la Torre dell'Orologio,
+con tre cuori da non perdere. Le tirate si chiamano a carte coperte, e ogni
+secondo passato nella Zona Palio vale un passo verso un nuovo bonus.
 
 La grafica è quella di un codice miniato: pagine di pergamena, sigilli di
 ceralacca, capitali in Cinzel e testo in EB Garamond. Il campo, in pixel art,
@@ -70,20 +65,15 @@ chiama meglio dell'IA.
 
 Durante la tirata **▶▶** (o `F`) fa scorrere le battute al doppio della velocità.
 
-### Il Torneo
-
-Girone all'italiana andata e ritorno, poi finale 3°/4° e finale 1°/2° posto.
-
 ### La tirata
 
 Dodici tiratori su una croce imperniata al centro. Ogni squadra occupa due
 bracci opposti; vince chi tiene un proprio braccio nella **Zona Palio** per
-qualche secondo consecutivo (5 nella tirata breve del torneo), o — a tempo scaduto — chi ha il palo più vicino
-all'arco.
+qualche secondo consecutivo (da 4 a 6, secondo la tappa), o — a tempo scaduto —
+chi ha il palo più vicino all'arco.
 
 Il giocatore non muove i tiratori: è il **Chiamatore**. La tirata si divide in
-**battute** da cinque secondi — nel torneo 8 nel formato breve, 12 nel
-regolamentare; nel cammino dipende dalla tappa. A
+**battute** da cinque secondi, da 6 a 12 secondo la tappa. A
 ogni battuta i due Chiamatori mettono in fila le loro carte **coperte**; le
 sequenze si scoprono insieme e il motore fisico gioca la battuta sul campo.
 Nessuno vede la mossa dell'altro prima di aver chiamato la propria: si vince
@@ -179,10 +169,11 @@ un sotto chiamato male esita. È la disciplina dei tiratori.
 
 ### I bonus
 
-Prima del torneo ogni quartiere sceglie un **primo bonus** fra tre. Poi, ogni
-**4 secondi** passati nella Zona Palio — accumulati, anche in una tirata persa —
-se ne guadagna un altro, al massimo **2 per tirata**: la tirata si ferma e si
-sceglie fra tre. I bonus restano per tutto il torneo e sono di due tipi:
+Prima di partire si sceglie un **primo bonus** fra tre. Poi, ogni **4 secondi**
+passati nella Zona Palio — accumulati, anche in una tirata persa — se ne
+guadagna un altro, al massimo **2 per tirata**: la tirata si ferma e si sceglie
+fra tre. Ogni tirata vinta ne vale un altro, e se ne trovano al mercato e negli
+eventi. I bonus restano fino al Palio e sono di due tipi:
 
 - **carte nuove** che entrano nel mazzo (quelle della tabella sopra);
 - **effetti permanenti**: *Fiato lungo* (+1 energia), *Occhio del chiamatore*
@@ -191,8 +182,9 @@ sceglie fra tre. I bonus restano per tutto il torneo e sono di due tipi:
   riesce), *Piede piantato* (il Freno rende 2 energia e frena il doppio),
   *Disciplina ferrea* (nessuna chiamata a metà).
 
-Le IA guadagnano i loro con la stessa regola — anche nelle tirate fra loro — e
-li scelgono secondo il carattere del quartiere.
+Gli avversari arrivano con i loro bonus, tanti più quanto più si sale sulla
+mappa; in tirata guadagnano quelli in zona con la stessa regola, e li scelgono
+secondo il carattere del quartiere.
 
 ### Il Chiamatore artificiale
 
@@ -221,20 +213,10 @@ leva lunga), due **Mediani** e due **Interni** (i più leggeri, leva corta). La
 posizione entra nella fisica: la Forza di un Esterno, più lontano dal perno,
 sposta il timone più di quella di un Interno, e il peso della squadra è spinta.
 
-### Due giocatori
+### Comandi da tastiera
 
-Sulla schermata iniziale si sceglie **Torneo in due**, sullo stesso schermo: ciascuno sceglie il proprio quartiere e il
-proprio primo bonus, gli altri due quartieri restano all'IA. Quando i due umani
-si affrontano, ogni mano resta **coperta** finché il suo proprietario non la
-guarda.
-
-Su telefono in verticale la tirata fra due umani si gioca in **hotseat**: la
-mano del Giocatore 2 va in cima, ruotata di 180°, quella del Giocatore 1 resta
-in basso. Si posa il telefono fra i due e ognuno gioca dal proprio bordo.
-
-Da tastiera il Giocatore 1 aggiunge le carte con `1`–`9`, toglie l'ultima con
-`Backspace` e chiama con `Invio`; `P` mette in pausa l'animazione, `F` la fa
-scorrere veloce.
+Le carte si aggiungono con `1`–`9`, l'ultima si toglie con `Backspace` e si
+chiama con `Invio`; `P` mette in pausa l'animazione, `F` la fa scorrere veloce.
 
 ## Avvio in locale
 
@@ -250,24 +232,23 @@ poi `http://localhost:8000`.
 
 ```
 js/
-├── core/      stato, PRNG seedabile, formazione, calendario e classifica
+├── core/      stato e salvataggio, PRNG seedabile, formazione
 ├── run/       il Cammino: mappa a bivi, regole della run, svolgimento delle tappe
 ├── data/      i quartieri
 ├── match/     engine (fisica pura), renderer in pixel art, HUD
 ├── cards/     carte ed energia, bonus, battuta, IA, sessione, tirata giocata
-└── ui/        schermate, bonus e mazzi, calendario, mappa e scene del Cammino
+└── ui/        schermate, bonus e mazzi, mappa e scene del Cammino
 ```
 
 Il motore in `js/match/engine.js` non tocca il DOM, e nemmeno la sessione delle
 carte (`js/cards/cardSim.js`): le stesse identiche regole governano la tirata
-giocata e la simulazione degli incontri fra IA, comprese quelle risolte con
-**Simula il resto del torneo** — bonus inclusi. Non c'è un dado sui rating: sono
-tirate vere, calcolate senza disegnarle.
+giocata e quella simulata senza disegnarla (`simulateCardFixture`), che serve
+alle prove di bilanciamento. Non c'è un dado sui rating: sono tirate vere.
 
 Le costanti fisiche stanno in `TUNING` in cima a `engine.js`; energia, carte e
 mazzo base in `js/cards/cards.js`; i bonus in `js/cards/bonus.js`. Il PRNG è
-seedabile: a parità di seme, calendario ed esiti sono riproducibili.
+seedabile: a parità di seme, mappa ed esiti sono riproducibili.
 
-Il Cammino ha un suo formato di salvataggio (`kind: 'cammino'`, versione 5).
-I tornei salvati con le versioni precedenti (rose scelte a mano e tirata in
-tempo reale) non si possono riprendere.
+Il salvataggio è quello del Cammino (`kind: 'cammino'`, versione 5). I tornei
+salvati con le versioni precedenti, che avevano anche le modalità Torneo e
+Torneo in due, vengono ignorati.

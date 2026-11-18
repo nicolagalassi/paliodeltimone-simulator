@@ -38,11 +38,11 @@ const STYLE_TEXT = {
 /* ============================ ingresso e uscita ============================ */
 
 export function startCammino({
-  seed, presetId, factionId, loadout, exit,
+  seed, factionId, loadout, exit,
 }) {
   onExit = exit;
   setState(C.newCammino({
-    seed, presetId, factionId, loadout,
+    seed, factionId, loadout,
   }));
   toMap();
 }
@@ -179,7 +179,7 @@ async function fight(node, oppLoadout) {
     homeTeam: buildTeam(s.factionId),
     awayTeam: buildTeam(node.opp),
     loadouts: [s.loadout, oppLoadout],
-    controllers: [{ type: 'human', playerNo: 1 }, { type: 'ai' }],
+    controllers: [{ type: 'human' }, { type: 'ai' }],
     ...C.tirataFormat(node),
     seed: (Number(s.seed) ^ hashSeed(node.id)) >>> 0,
     title: `${me.name} – ${opp.name}`,

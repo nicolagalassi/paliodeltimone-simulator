@@ -1,6 +1,6 @@
 /**
- * PRNG seedabile. Serve a rendere riproducibili calendario, mazzi, bonus e
- * simulazioni headless: stesso seed => stesso torneo.
+ * PRNG seedabile. Serve a rendere riproducibili mappa, mazzi, bonus e
+ * simulazioni headless: stesso seed => stesso cammino.
  */
 
 /** Hash di una stringa in un intero a 32 bit, per accettare seed testuali. */

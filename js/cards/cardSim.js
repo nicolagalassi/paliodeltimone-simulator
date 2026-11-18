@@ -202,7 +202,7 @@ export function createCardSession({
 
 const round1 = (v) => Math.round(v * 10) / 10;
 
-/** Esito nella forma registrata dal calendario. */
+/** Esito della tirata in forma compatta: vincitore, motivo, tenute, distanze, durata. */
 export function toResult(outcome) {
   return {
     winner: outcome.winner,

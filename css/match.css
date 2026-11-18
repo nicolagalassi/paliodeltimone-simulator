@@ -274,7 +274,6 @@
 .card[data-type="muro"]::before, .bonus-option[data-type="muro"]::before { content: "▥"; }
 .card[data-type="contropiede"]::before, .bonus-option[data-type="contropiede"]::before { content: "⤳"; }
 .card[data-type="finta"]::before, .bonus-option[data-type="finta"]::before { content: "⤺"; }
-.card.is-covered::before { content: none; }
 .card-cost, .card-dur {
   position: absolute; top: 4px; font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-dim);
 }
@@ -301,12 +300,6 @@
   color: #f6e7c4; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
-.card.is-covered {
-  justify-content: center; padding-top: 0.45rem;
-  background: repeating-linear-gradient(45deg, var(--bg-elev-2) 0 6px, var(--bg-elev) 6px 12px);
-  border-top-color: var(--line);
-}
-.card-back { font-size: 1.2rem; color: var(--line); }
 
 /* Le due sequenze scoperte, in basso sul campo: la zona è in alto e va lasciata libera. */
 /* ---- il duello: le due sequenze allineate sul tempo della battuta ---- */

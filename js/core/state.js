@@ -5,19 +5,8 @@
  */
 
 const SAVE_KEY = 'pdt.save.v2';
-const VERSION = 4;           // torneo
-const CAMMINO_VERSION = 5;   // cammino del palio
-
-/**
- * I due formati della tirata: quante battute da cinque secondi, e quanti
- * secondi consecutivi in zona servono per vincerla.
- */
-export const PRESETS = {
-  // Misurate in simulazione: una Breve finisce in media in ~6 battute (circa un
-  // minuto di gioco), una Regolamentare in ~10.
-  rapida: { id: 'rapida', label: 'Breve', battute: 8, hold: 5 },
-  regolamentare: { id: 'regolamentare', label: 'Regolamentare', battute: 12, hold: 6 },
-};
+/** Versione del salvataggio del Cammino (vedi run/cammino.js). */
+const CAMMINO_VERSION = 5;
 
 /** @type {any} */
 let state = null;
@@ -50,40 +39,6 @@ export function mutate(fn, { save = true } = {}) {
   return state;
 }
 
-/**
- * @param {object} cfg
- * @param {Object<string, {deck:string[], bonuses:string[]}>} cfg.run
- *   mazzo e bonus di ogni quartiere: crescono lungo il torneo
- */
-export function newTournamentState({
-  seed, presetId, teams, schedule, mode = 'single', humans, run,
-}) {
-  return {
-    version: VERSION,
-    seed,
-    mode,                                   // 'single' | 'duo'
-    // Quartieri chiamati da un umano, in ordine di giocatore. `factionId` è il
-    // primo, per i tanti punti che leggono "il mio quartiere".
-    humans,
-    factionId: humans[0],
-    presetId: presetId in PRESETS ? presetId : 'rapida',
-    teams,           // { [factionId]: { factionId, isPlayer, playerNo } }
-    run,             // { [factionId]: { deck, bonuses } }
-    schedule,        // array di giornate
-    finals: null,    // creato al termine del girone
-    stage: 'group',  // 'group' | 'finals' | 'done'
-    createdAt: Date.now(),
-  };
-}
-
-export const getPreset = (s = state) => PRESETS[s?.presetId] ?? PRESETS.rapida;
-
-/** Battute e tenuta della tirata nel formato del torneo. */
-export const getCardPreset = (s = state) => {
-  const p = getPreset(s);
-  return { battute: p.battute, hold: p.hold };
-};
-
 /* ---------------- persistenza ---------------- */
 
 export function persist() {
@@ -97,19 +52,15 @@ export function persist() {
 }
 
 /**
- * Si riprendono solo i tornei della versione attuale. Quelli precedenti erano
- * fatti di rose scelte a mano e di tirate in tempo reale, che non esistono
- * più: non c'è un modo onesto di convertirli in mazzi e bonus.
+ * Si riprendono solo i cammini della versione attuale. I tornei salvati dalle
+ * versioni precedenti, che avevano anche la modalità Torneo, si ignorano.
  */
 export function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed) return null;
-    // Il Cammino ha un suo formato (vedi run/cammino.js).
-    if (parsed.kind === 'cammino') return parsed.version === CAMMINO_VERSION && parsed.map ? parsed : null;
-    if (parsed.version !== VERSION || !parsed.schedule || !parsed.run) return null;
+    if (!parsed || parsed.kind !== 'cammino' || parsed.version !== CAMMINO_VERSION || !parsed.map) return null;
     return parsed;
   } catch {
     return null;
