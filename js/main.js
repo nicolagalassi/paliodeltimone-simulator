@@ -119,13 +119,17 @@ function renderFactionScreen({ playerNo = 1, taken = [] } = {}) {
 
 /** Collega i pulsanti di modalità e formato allo stato corrente. */
 function wireModeAndPreset() {
+  // Nel Cammino ogni tappa ha la sua durata: il formato vale solo per il torneo.
+  const syncFormat = () => { $('format-bar').hidden = selectedMode === 'cammino'; };
   for (const btn of $('mode-options').querySelectorAll('.preset-btn')) {
     btn.classList.toggle('is-active', btn.dataset.mode === selectedMode);
     btn.onclick = () => {
       selectedMode = btn.dataset.mode;
       for (const b of $('mode-options').children) b.classList.toggle('is-active', b === btn);
+      syncFormat();
     };
   }
+  syncFormat();
   for (const btn of $('preset-options').querySelectorAll('.preset-btn')) {
     btn.classList.toggle('is-active', btn.dataset.preset === selectedPreset);
     btn.onclick = () => {

@@ -2,7 +2,7 @@
  * Le carte della tirata.
  *
  * La tirata si gioca a battute di cinque secondi. A ogni battuta il Chiamatore
- * ha un'ENERGIA da spendere (5, più i bonus) e una mano di carte. Ogni carta
+ * ha un'ENERGIA da spendere (4, più i bonus) e una mano di carte. Ogni carta
  * ha un costo in energia e una DURATA in secondi: se ne giocano quante si
  * vuole, in fila e nell'ordine scelto, finché bastano energia e tempo. Il
  * tempo che avanza è presa passiva: la squadra tiene ma non spinge.
@@ -14,7 +14,9 @@
  * costa nulla e fa rifiatare — un punto di energia in più alla battuta dopo.
  */
 
-import { TUNING, normAngle, activeArm } from '../match/engine.js';
+import {
+  TUNING, normAngle, activeArm, commandDirection,
+} from '../match/engine.js';
 
 /** Secondi di tirata giocati da ogni battuta. */
 export const BATTUTA_SECONDS = 5;
@@ -60,6 +62,19 @@ export const CARD_TYPES = {
     text: 'Ci si pianta: smorza la giostra e si rifiata. Una volta per battuta.',
   },
 
+  /* ---- carte di risposta ----
+   * Rendono solo se si indovina che cosa fa l'avversario in quel secondo: si
+   * giocano leggendolo, non alla cieca. `react` dice come rispondono (vedi
+   * resolveReactions). */
+  muro: {
+    name: 'Muro', kind: 'react', react: 'muro', cost: 1, dur: 1, boost: 1.5,
+    text: 'Se l’avversario spinge o tira in quel secondo, la squadra gli fa muro contro (+50%). Altrimenti resta in presa.',
+  },
+  contropiede: {
+    name: 'Contropiede', kind: 'react', react: 'contropiede', cost: 1, dur: 1, boost: 1.8,
+    text: 'Se l’avversario frena, sta in presa o passa sotto, spinta +80%. Se invece spinge o tira, la spinta rende poco.',
+  },
+
   /* ---- carte da guadagnare come bonus ----
    * Due strade: la POTENZA (Spallata, Strattone) costa molta energia per pochi
    * secondi, l'EFFICIENZA (Carica lunga, Àncora) dà più secondi per energia. */
@@ -83,14 +98,51 @@ export const CARD_TYPES = {
     name: 'Passaggio lampo', kind: 'sotto', cost: 1, dur: 1, sure: true, fast: 0.55,
     text: 'Gli Interni guidano il passaggio: sotto sicuro e rapidissimo.',
   },
+  finta: {
+    name: 'Finta', kind: 'react', react: 'finta', cost: 1, dur: 1, boost: 1,
+    text: 'Si molla di colpo: se l’avversario spinge o tira in quel secondo, la sua forza va a vuoto (−70%) e la squadra tiene. Altrimenti, presa.',
+  },
 };
+
+/**
+ * Le combo: certe carte rendono di più se vengono subito dopo altre. Si
+ * leggono sulla linea del tempo mentre si compone la sequenza.
+ *   Ondata        — la terza spinta di fila (e le seguenti): +40%
+ *   Rovescio      — una spinta subito dopo un sotto: +30%
+ *   Strappo doppio — una tirata subito dopo un'altra: +30%
+ *   Presa ferrea  — una tenuta subito dopo un'altra: +25%
+ *   Rimessa       — un Contropiede subito dopo un Muro: +30%
+ */
+export const COMBOS = {
+  ondata: { name: 'Ondata', mult: 1.4 },
+  rovescio: { name: 'Rovescio', mult: 1.3 },
+  strappo: { name: 'Strappo doppio', mult: 1.3 },
+  ferrea: { name: 'Presa ferrea', mult: 1.25 },
+  rimessa: { name: 'Rimessa', mult: 1.3 },
+};
+
+/** Per ogni carta della sequenza, la combo che la potenzia (o null). */
+export function comboOf(seq) {
+  const kinds = seq.map((c) => CARD_TYPES[c.type].kind);
+  return seq.map((c, k) => {
+    const kind = kinds[k];
+    const prev = kinds[k - 1];
+    if (kind === 'push' && prev === 'push' && kinds[k - 2] === 'push') return 'ondata';
+    if (kind === 'push' && prev === 'sotto') return 'rovescio';
+    if (kind === 'pull' && prev === 'pull') return 'strappo';
+    if (kind === 'hold' && prev === 'hold') return 'ferrea';
+    if (c.type === 'contropiede' && seq[k - 1]?.type === 'muro') return 'rimessa';
+    return null;
+  });
+}
 
 /** Il mazzo con cui partono tutte le squadre. */
 export const BASE_DECK = [
-  'spinta', 'spinta', 'spinta', 'spinta', 'spinta',
+  'spinta', 'spinta', 'spinta', 'spinta',
   'tirata', 'tirata',
-  'tenuta', 'tenuta', 'tenuta',
+  'tenuta', 'tenuta',
   'sotto', 'sotto',
+  'muro', 'contropiede',
 ];
 
 const isSotto = (card) => CARD_TYPES[card.type].kind === 'sotto';
@@ -109,7 +161,7 @@ export const FRENO = Object.freeze({ uid: 'freno', type: 'freno' });
  * Senza bonus valgono tutti 1 (o falso): le carte rendono come scritto.
  */
 export const NO_MODS = Object.freeze({
-  push: 1, pull: 1, hold: 1, brake: 1,
+  push: 1, pull: 1, hold: 1, brake: 1, react: 1,
   sottoSure: false, energy: 0, draw: 0, frenoEnergy: 1, noMisfire: false,
 });
 
@@ -204,11 +256,14 @@ export const MISFIRE_DELAY = 0.6;
  * è un piccolo controllore; il sotto si chiama, si aspetta il passaggio e poi
  * si spinge nel nuovo verso per il tempo che resta.
  */
-function cardPlan(card, mods, misfire, dt) {
+function cardPlan(card, mods, misfire, dt, combo = 1) {
   const t = CARD_TYPES[card.type];
   const k = misfire ? MISFIRE_GAIN : 1;
-  const boost = cardBoost(card, mods) * k;
+  const boost = cardBoost(card, mods) * k * combo;
 
+  // Le risposte non decidono da sole: lo fa resolveReactions, guardando il
+  // comando dell'avversario nello stesso istante.
+  if (t.kind === 'react') return () => ({ type: 'react', react: t.react, boost });
   if (t.kind === 'push') return () => ({ type: 'push', boost });
   if (t.kind === 'pull') return () => ({ type: 'pull', boost });
   if (t.kind === 'brake') return () => ({ type: 'brake', boost });
@@ -254,10 +309,14 @@ function cardPlan(card, mods, misfire, dt) {
  */
 export function makeSequencePlan(seq, mods = NO_MODS, misfires = [], dt = TUNING.STEP) {
   const segs = [];
+  const combos = comboOf(seq);
   let at = 0;
   seq.forEach((card, k) => {
     const dur = CARD_TYPES[card.type].dur;
-    segs.push({ card, start: at, end: at + dur, misfire: !!misfires[k] });
+    const combo = combos[k] ? COMBOS[combos[k]].mult : 1;
+    segs.push({
+      card, start: at, end: at + dur, misfire: !!misfires[k], combo,
+    });
     at += dur;
   });
 
@@ -267,12 +326,58 @@ export function makeSequencePlan(seq, mods = NO_MODS, misfires = [], dt = TUNING
   return (m, i) => {
     while (idx + 1 < segs.length && t >= segs[idx + 1].start - 1e-9) {
       idx++;
-      sub = cardPlan(segs[idx].card, mods, segs[idx].misfire, dt);
+      sub = cardPlan(segs[idx].card, mods, segs[idx].misfire, dt, segs[idx].combo);
     }
     const active = idx >= 0 && t < segs[idx].end - 1e-9;
     t += dt;
     return active ? sub(m, i) : { type: 'idle' };
   };
+}
+
+/**
+ * Risolve le carte di risposta di un istante. Ciascuna guarda il comando
+ * dell'avversario nello stesso passo (una risposta contro una risposta vale
+ * come presa) e diventa un comando vero:
+ *   Muro         — se l'altro spinge o tira, coppia contro la sua, +50%;
+ *                  altrimenti presa;
+ *   Contropiede  — se l'altro è fermo (presa, freno, sotto), spinta +80%;
+ *                  altrimenti una spinta debole;
+ *   Finta        — se l'altro spinge o tira, la sua forza va a vuoto (−70%) e
+ *                  la squadra si pianta; altrimenti presa.
+ * Annota in `rt.react` se la risposta ha colto nel segno, per mostrarlo.
+ */
+export function resolveReactions(m, a, b) {
+  const cmds = [a ?? { type: 'idle' }, b ?? { type: 'idle' }];
+  if (cmds[0].type !== 'react' && cmds[1].type !== 'react') {
+    m.rt[0].react = null;
+    m.rt[1].react = null;
+    return cmds;
+  }
+  const out = cmds.slice();
+  for (let i = 0; i < 2; i++) {
+    const c = cmds[i];
+    const rt = m.rt[i];
+    if (c.type !== 'react') { rt.react = null; continue; }
+    const opp = cmds[1 - i].type === 'react' ? { type: 'idle' } : cmds[1 - i];
+    const rtO = m.rt[1 - i];
+    const oppDir = rtO.sottoTimer > 0 ? 0 : commandDirection(opp.type, rtO.facing);
+    let hit = false;
+    if (c.react === 'muro') {
+      hit = oppDir !== 0;
+      out[i] = hit
+        ? { type: commandDirection('push', rt.facing) === -oppDir ? 'push' : 'pull', boost: c.boost }
+        : { type: 'idle' };
+    } else if (c.react === 'contropiede') {
+      hit = oppDir === 0;
+      out[i] = { type: 'push', boost: hit ? c.boost : c.boost * 0.35 };
+    } else if (c.react === 'finta') {
+      hit = oppDir !== 0;
+      if (hit) out[1 - i] = { ...out[1 - i], boost: (out[1 - i].boost ?? 1) * 0.3 };
+      out[i] = hit ? { type: 'brake', boost: c.boost } : { type: 'idle' };
+    }
+    rt.react = hit ? 'hit' : 'miss';
+  }
+  return out;
 }
 
 /* ============================ letture del campo ============================ */
@@ -290,6 +395,7 @@ export function cardTowardGoal(m, i, card) {
   if (kind === 'pull') return !pushToward;
   if (kind === 'sotto') return !pushToward;
   if (kind === 'hold') return true;
+  if (card.type === 'contropiede') return pushToward;
   return false;
 }
 
@@ -308,6 +414,7 @@ export function cardEffect(card, mods = NO_MODS) {
     case 'hold': return `tiene il palo${forza}`;
     case 'sotto': return (t.sure || mods.sottoSure) ? 'sotto sicuro' : 'sotto, poi spinta';
     case 'brake': return `+${mods.frenoEnergy}⚡ alla prossima`;
+    case 'react': return { muro: 'se spinge: muro', contropiede: 'se sta fermo: +80%', finta: 'se spinge: a vuoto' }[t.react] ?? '';
     default: return '';
   }
 }

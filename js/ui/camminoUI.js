@@ -114,7 +114,7 @@ function renderMap(state, onEnter) {
     const opp = n.opp ? getFaction(n.opp) : null;
     if (opp) btn.style.setProperty('--oc', opp.color);
     btn.append(el('span', 'node-icon', info.icon));
-    const label = el('span', 'node-label', opp && n.type !== 'palio' ? opp.name : info.name);
+    const label = el('span', 'node-label', opp && n.type !== 'palio' ? opp.name : info.short);
     btn.append(label);
     btn.title = opp ? `${info.name} contro ${opp.name} — ${info.text}` : `${info.name} — ${info.text}`;
     if (visited.has(n.id)) btn.classList.add('is-visited');

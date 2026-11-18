@@ -43,13 +43,13 @@
   </div>
 
   <div class="preset-bar" id="format-bar">
-    <span class="preset-label">Formato della tirata</span>
+    <span class="preset-label">Formato della tirata (torneo)</span>
     <div class="preset-options" id="preset-options">
       <button type="button" class="preset-btn is-active" data-preset="rapida">
-        <strong>Breve</strong><span>18 battute · 8 s in zona</span>
+        <strong>Breve</strong><span>8 battute · 5 s in zona</span>
       </button>
       <button type="button" class="preset-btn" data-preset="regolamentare">
-        <strong>Regolamentare</strong><span>26 battute · 8 s in zona</span>
+        <strong>Regolamentare</strong><span>12 battute · 6 s in zona</span>
       </button>
     </div>
   </div>
@@ -166,6 +166,7 @@
       <div class="hud-time-row">
         <div class="hud-time" id="hud-time">1:00</div>
         <button type="button" class="btn-pause" id="btn-pause" title="Pausa (P)" aria-label="Pausa">❙❙</button>
+        <button type="button" class="btn-pause btn-fast" id="btn-fast" title="Avanti veloce (F)" aria-label="Avanti veloce" aria-pressed="false">▶▶</button>
       </div>
       <div class="hud-hold-target">tieni <span id="hud-hold-target">8</span>s in zona</div>
       <div class="hud-battuta" id="hud-battuta">battuta <b id="hud-battuta-n">1</b>/<span id="hud-battuta-tot">18</span></div>
@@ -233,6 +234,8 @@
 
   <!-- Una mano per ogni Chiamatore umano. -->
   <div class="hand-area" id="hand-area">
+    <!-- Ciò che si sa prima di chiamare: l'intenzione dell'IA e l'imprevisto. -->
+    <div class="battuta-info" id="battuta-info" hidden></div>
     <div class="hand-player" id="hand-player-a">
       <div class="hand-head">
         <span class="hand-label" id="hand-label-a">La tua mano</span>

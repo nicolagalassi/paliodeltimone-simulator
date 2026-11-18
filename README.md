@@ -35,27 +35,40 @@ suo chiamatore.
 
 Si parte con il mazzo base, un primo bonus a scelta e **tre cuori**. La mappa ha
 nove righe di tappe, dal basso verso l'alto; da ogni tappa partono uno o due
-sentieri verso la riga dopo, e si sceglie quale prendere.
+sentieri verso la riga dopo, e si sceglie quale prendere. Le tappe che non sono
+tirate stanno in luoghi veri di Massa Lombarda.
 
 | Tappa | Che cosa succede |
 |---|---|
-| ⚔ **Tirata** | Contro un quartiere rivale. Vinta: 15 fiorini. Persa: un cuore. |
+| ⚔ **Tirata** | Contro un quartiere rivale. Vinta: 15 fiorini e un bonus a scelta. Persa: un cuore. |
 | ☠ **Rivale** | Un avversario con più bonus. Vinta: 30 fiorini e un bonus a scelta. |
-| ? **Evento** | Un incontro in piazza con una scelta: il vecchio tiratore, la scommessa, il vino del Moro… |
-| ⚖ **Bottega** | Tre bonus in vendita (35 fiorini le carte, 50 gli effetti), togliere una carta, un cuore. |
-| ✦ **Allenamento** | Si toglie una carta dal mazzo, o se ne raddoppia una. |
-| ♨ **Osteria** | Si recupera un cuore, o si toglie una carta. |
-| ★ **Il Palio** | In cima: la tirata finale contro il rivale storico, scelto a inizio run. |
+| ? **Evento** | Un incontro in paese con una scelta: il vecchio tiratore, la scommessa, il vino del Moro… |
+| ⚖ **La Piazza del Mercato** | Tre bonus in vendita (35 fiorini le carte, 50 gli effetti), togliere una carta, un cuore. |
+| ≈ **L'antico lavatoio** | Allenamento: si toglie una carta dal mazzo, o se ne raddoppia una. |
+| ✝ **La chiesa di San Paolo** | Si accende un cero (+1 cuore), o si toglie una carta. |
+| ★ **Il Palio** | Sotto la Torre dell'Orologio: la tirata finale contro il rivale storico, scelto a inizio run. |
+
+Le tirate del cammino sono brevi all'inizio e si allungano salendo:
+
+| Tirata | Battute | Tenuta per vincere | Durata media |
+|---|---|---|---|
+| prime tre righe | 6 | 4 s | ~5 battute |
+| resto della mappa | 8 | 5 s | ~6 battute |
+| rivale | 10 | 5 s | ~7 battute |
+| Palio | 12 | 6 s | ~10 battute |
 
 Prima di ogni tirata si vede il **mazzo dell'avversario** e i suoi effetti, così
-si può preparare la strategia. Gli avversari crescono salendo la mappa: più bonus
-nella riga alta, di più per i rivali, otto per chi aspetta al Palio. Il mazzo non
-scende mai sotto le sette carte.
+si può preparare la strategia. Gli avversari crescono salendo la mappa: nessun
+bonus in basso, fino a tre in alto, due in più per i rivali, sei per chi aspetta
+al Palio. Il mazzo non scende mai sotto le sette carte.
 
 Senza cuori il cammino finisce; vincendo il Palio, la run è vinta. Il cammino si
 salva a ogni passo e si riprende dalla schermata iniziale. Misurato in
-simulazione, un chiamatore forte quanto l'IA vince il Palio poco più di una run
-su due.
+simulazione, un chiamatore forte quanto l'IA vince il Palio in quattro run su
+dieci: le tirate brevi lasciano più spazio al caso, e la differenza la fa chi
+chiama meglio dell'IA.
+
+Durante la tirata **▶▶** (o `F`) fa scorrere le battute al doppio della velocità.
 
 ### Il Torneo
 
@@ -65,11 +78,12 @@ Girone all'italiana andata e ritorno, poi finale 3°/4° e finale 1°/2° posto.
 
 Dodici tiratori su una croce imperniata al centro. Ogni squadra occupa due
 bracci opposti; vince chi tiene un proprio braccio nella **Zona Palio** per
-**8 secondi** consecutivi, o — a tempo scaduto — chi ha il palo più vicino
+qualche secondo consecutivo (5 nella tirata breve del torneo), o — a tempo scaduto — chi ha il palo più vicino
 all'arco.
 
 Il giocatore non muove i tiratori: è il **Chiamatore**. La tirata si divide in
-**battute** da cinque secondi — 18 nel formato breve, 26 nel regolamentare. A
+**battute** da cinque secondi — nel torneo 8 nel formato breve, 12 nel
+regolamentare; nel cammino dipende dalla tappa. A
 ogni battuta i due Chiamatori mettono in fila le loro carte **coperte**; le
 sequenze si scoprono insieme e il motore fisico gioca la battuta sul campo.
 Nessuno vede la mossa dell'altro prima di aver chiamato la propria: si vince
@@ -111,11 +125,13 @@ Il mazzo di partenza, uguale per tutti:
 
 | Carta | Costo | Durata | Che cosa fa |
 |---|---|---|---|
-| **Spinta** ×5 | 1⚡ | 1 s | Tutta la squadra avanti, spalle al palo |
+| **Spinta** ×4 | 1⚡ | 1 s | Tutta la squadra avanti, spalle al palo |
 | **Tirata** ×2 | 1⚡ | 1 s | Il palo verso di sé, camminando all'indietro: breve e forte |
-| **Tenuta** ×3 | 1⚡ | 1 s | Riporta il palo al centro dell'arco e lo ferma |
+| **Tenuta** ×2 | 1⚡ | 1 s | Riporta il palo al centro dell'arco e lo ferma |
 | **Sotto** ×2 | 1⚡ | 2 s | Si passa sotto e ci si rigira: la spinta cambia verso |
 | **Freno** | 0⚡ | 1 s | Smorza la giostra, +1⚡ alla battuta dopo (sempre in mano) |
+| **Muro** ×1 | 1⚡ | 1 s | *Risposta*: se l'avversario spinge o tira in quel secondo, gli fa muro contro (+50%); altrimenti presa |
+| **Contropiede** ×1 | 1⚡ | 1 s | *Risposta*: se l'avversario è fermo (presa, freno, sotto), spinta +80%; altrimenti una spinta debole |
 
 Le carte da guadagnare come bonus aprono due strade — **potenza** (molta
 energia per pochi secondi) o **efficienza** (più secondi per energia):
@@ -127,6 +143,36 @@ energia per pochi secondi) o **efficienza** (più secondi per energia):
 | **Carica lunga** | 2⚡ | 3 s | Una spinta che non molla per tre secondi |
 | **Àncora** | 2⚡ | 3 s | Tiene il palo nell'arco per tre secondi |
 | **Passaggio lampo** | 1⚡ | 1 s | Sotto sicuro e rapidissimo |
+| **Finta** | 1⚡ | 1 s | *Risposta*: se l'avversario spinge o tira, la sua forza va a vuoto (−70%) |
+
+Anche Muro e Contropiede si possono guadagnare come bonus, per averne più copie.
+
+### Leggere l'avversario
+
+Le chiamate restano coperte, ma non si gioca del tutto alla cieca:
+
+- **Intenzione** — prima di chiamare si vede con che carta **apre** l'IA (la
+  prima della sua sequenza, già decisa). È lì che le carte di risposta rendono
+  di più: un Muro contro la sua Spinta, un Contropiede contro il suo Freno.
+- **Carte di risposta** — valgono solo se si indovina che cosa fa l'altro in quel
+  secondo. Nel duello una risposta andata a segno resta segnata con ✓.
+- **Combo** — certe carte rendono di più subito dopo altre, e la linea del tempo
+  lo mostra mentre si compone la sequenza:
+
+| Combo | Quando | Effetto |
+|---|---|---|
+| **Ondata** | la terza spinta di fila (e le seguenti) | +40% |
+| **Rovescio** | una spinta subito dopo un sotto | +30% |
+| **Strappo doppio** | una tirata subito dopo un'altra | +30% |
+| **Presa ferrea** | una tenuta subito dopo un'altra | +25% |
+| **Rimessa** | un Contropiede subito dopo un Muro | +30% |
+
+- **Imprevisti** — circa una battuta su tre (mai la prima) ha una condizione
+  che vale per tutti, annunciata prima di chiamare: *il fango* (spinte −30%,
+  tirate +20%), *il pubblico incita* (+1⚡ a chi è più lontano dalla zona), *le
+  campane della Torre* (una carta in più), *il solleone* (−1⚡ a tutti), *il
+  richiamo dei capitani* (nessuna chiamata a metà). Le carte in mano mostrano
+  già l'effetto.
 
 Con poco Gioco di squadra una chiamata può uscire **a metà**: rende di meno, e
 un sotto chiamato male esita. È la disciplina dei tiratori.
@@ -187,7 +233,8 @@ mano del Giocatore 2 va in cima, ruotata di 180°, quella del Giocatore 1 resta
 in basso. Si posa il telefono fra i due e ognuno gioca dal proprio bordo.
 
 Da tastiera il Giocatore 1 aggiunge le carte con `1`–`9`, toglie l'ultima con
-`Backspace` e chiama con `Invio`; `P` mette in pausa l'animazione.
+`Backspace` e chiama con `Invio`; `P` mette in pausa l'animazione, `F` la fa
+scorrere veloce.
 
 ## Avvio in locale
 

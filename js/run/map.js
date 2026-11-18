@@ -10,23 +10,31 @@
  *   tirata       — una tirata contro un quartiere rivale
  *   rivale       — un rivale più forte, con più bonus: più fiorini e un bonus
  *   evento       — un incontro in piazza, con una scelta
- *   bottega      — si spendono fiorini
- *   allenamento  — si toglie o si raddoppia una carta del mazzo
- *   osteria      — si recupera un cuore, o si toglie una carta
+ *   bottega      — (la piazza del mercato) si spendono fiorini
+ *   allenamento  — (l'antico lavatoio) si toglie o si raddoppia una carta
+ *   osteria      — (la chiesa di San Paolo) si recupera un cuore, o si toglie una carta
  *   palio        — la tirata finale, contro il rivale storico
+ *
+ * Mercato, lavatoio e chiesa sono luoghi di Massa Lombarda: vedi NODE_INFO.
  */
 
 export const LANES = 4;
 export const ROWS = 8;               // righe di tappe prima del Palio
 
+/**
+ * Le tappe che non sono tirate stanno in luoghi veri di Massa Lombarda; il
+ * Palio si corre sotto la Torre dell'Orologio. `short` è l'etichetta sulla
+ * mappa. Gli id interni (bottega, osteria…) restano quelli di sempre, così i
+ * cammini già salvati si riprendono.
+ */
 export const NODE_INFO = {
-  tirata: { name: 'Tirata', icon: '⚔', text: 'Una tirata contro un quartiere rivale.' },
-  rivale: { name: 'Rivale', icon: '☠', text: 'Un rivale agguerrito, con più bonus. Ricompensa più ricca.' },
-  evento: { name: 'Evento', icon: '?', text: 'Un incontro in piazza: una scelta da fare.' },
-  bottega: { name: 'Bottega', icon: '⚖', text: 'Si comprano bonus con i fiorini.' },
-  allenamento: { name: 'Allenamento', icon: '✦', text: 'Si toglie o si raddoppia una carta del mazzo.' },
-  osteria: { name: 'Osteria', icon: '♨', text: 'Si recupera un cuore, o si scarta una carta.' },
-  palio: { name: 'Il Palio', icon: '★', text: 'La tirata finale contro il rivale storico.' },
+  tirata: { name: 'Tirata', short: 'Tirata', icon: '⚔', text: 'Una tirata contro un quartiere rivale.' },
+  rivale: { name: 'Rivale', short: 'Rivale', icon: '☠', text: 'Un rivale agguerrito, con più bonus. Ricompensa più ricca.' },
+  evento: { name: 'Evento', short: 'Evento', icon: '?', text: 'Un incontro in paese: una scelta da fare.' },
+  bottega: { name: 'La Piazza del Mercato', short: 'Mercato', icon: '⚖', text: 'Ai banchi del mercato si comprano bonus con i fiorini.' },
+  allenamento: { name: 'L’antico lavatoio', short: 'Lavatoio', icon: '≈', text: 'Allenamento: si toglie o si raddoppia una carta del mazzo.' },
+  osteria: { name: 'La chiesa di San Paolo', short: 'Chiesa', icon: '✝', text: 'Si recupera un cuore, o si toglie una carta.' },
+  palio: { name: 'La Torre dell’Orologio', short: 'Il Palio', icon: '★', text: 'Il Palio, sotto la Torre dell’Orologio, contro il rivale storico.' },
 };
 
 /** Pesi delle tappe nelle righe libere. */

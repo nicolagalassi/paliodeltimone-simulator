@@ -115,6 +115,7 @@ body:has(#screen-match:not([hidden])) {
   .card-effect { font-size: 0.55rem; }
   .card-toward { font-size: 0.5rem; }
   .hand-btn { padding: 0.45rem 0.8rem; }
+  .battuta-info { font-size: 0.8rem; padding: 0.25rem 0.45rem; gap: 0.15rem 0.7rem; }
   /* Il duello si stringe: nomi corti, tracce basse, ma le carte si leggono. */
   .arena { gap: 0.35rem; }
   .duel { padding: 0.3rem 0.45rem 0.25rem; }

@@ -68,6 +68,8 @@
   letter-spacing: 0.1em;
 }
 .btn-pause:hover { border-color: var(--gold); color: var(--ink); }
+.btn-fast { letter-spacing: -0.12em; padding-inline: 0.45rem 0.55rem; }
+.btn-fast.is-on { background: var(--wax); border-color: #5e1010; color: #f6e7c4; }
 
 .pause-overlay {
   position: absolute; inset: 0;
@@ -212,6 +214,12 @@
   font-size: 0.74rem; font-weight: 600;
 }
 .tl-block:disabled { cursor: default; }
+/* Una carta in combo: la linea del tempo lo dice mentre si compone la sequenza. */
+.tl-block.has-combo { box-shadow: inset 0 0 0 2px var(--gilt); }
+.tl-combo {
+  margin-left: 0.25rem; font-size: 0.6rem; font-weight: 700; white-space: nowrap;
+  color: #6b4405; background: var(--gilt); border-radius: 3px; padding: 0 0.2rem;
+}
 .tl-free {
   flex-basis: 0; min-width: 0; display: grid; place-items: center; overflow: hidden; white-space: nowrap;
   font-size: 0.62rem; color: var(--ink-faint);
@@ -251,6 +259,7 @@
 .card-sotto, .tl-block.card-sotto, .deck-item.card-sotto, .bonus-option.card-sotto { --kc: #8457b8; }
 .card-hold, .tl-block.card-hold, .deck-item.card-hold, .bonus-option.card-hold { --kc: #4f9a3e; }
 .card-brake, .tl-block.card-brake, .deck-item.card-brake, .bonus-option.card-brake { --kc: #85775d; }
+.card-react, .tl-block.card-react, .deck-item.card-react, .bonus-option.card-react { --kc: #b4542a; }
 .card::before { font-size: 1rem; line-height: 1; color: var(--kc); }
 .card[data-type="spinta"]::before, .bonus-option[data-type="spinta"]::before { content: "→"; }
 .card[data-type="spallata"]::before, .bonus-option[data-type="spallata"]::before { content: "⇒"; }
@@ -262,6 +271,9 @@
 .card[data-type="sotto"]::before, .bonus-option[data-type="sotto"]::before { content: "↻"; }
 .card[data-type="lampo"]::before, .bonus-option[data-type="lampo"]::before { content: "↯"; }
 .card[data-type="freno"]::before { content: "■"; }
+.card[data-type="muro"]::before, .bonus-option[data-type="muro"]::before { content: "▥"; }
+.card[data-type="contropiede"]::before, .bonus-option[data-type="contropiede"]::before { content: "⤳"; }
+.card[data-type="finta"]::before, .bonus-option[data-type="finta"]::before { content: "⤺"; }
 .card.is-covered::before { content: none; }
 .card-cost, .card-dur {
   position: absolute; top: 4px; font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-dim);
@@ -345,6 +357,11 @@
 }
 .duel-block.is-past { opacity: 0.8; }
 .duel-block.is-now { opacity: 1; box-shadow: inset 0 0 0 2px var(--ink); }
+.duel-block.has-combo { box-shadow: inset 0 0 0 2px var(--gilt); }
+.duel-block.has-combo.is-now { box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 4px var(--gilt); }
+/* Una risposta andata a segno. */
+.duel-block.is-hit { box-shadow: inset 0 0 0 2px var(--ok); }
+.duel-block.is-hit::before { content: "✓ "; color: var(--ok); font-weight: 700; }
 .duel-block.is-misfire {
   background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.28) 0 4px, transparent 4px 8px);
 }
@@ -385,6 +402,24 @@
   border-radius: 1px;
 }
 .duel.is-idle .duel-playhead { display: none; }
+
+/* ---- prima di chiamare: intenzione dell'IA e imprevisto ---- */
+.battuta-info {
+  flex-basis: 100%;
+  display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; align-items: baseline;
+  font-size: 0.92rem; color: var(--ink-dim);
+  border: 1px dashed var(--line); border-radius: var(--radius-s);
+  background: var(--paper-grain), #f6e9c8; padding: 0.3rem 0.6rem;
+}
+.battuta-info[hidden] { display: none; }
+.info-intent b { color: var(--tc); font-family: var(--font-display); font-size: 0.85rem; }
+.info-card {
+  --kc: var(--ink-faint);
+  display: inline-block; margin-left: 0.15rem; padding: 0 0.35rem; border-radius: 3px;
+  font-family: var(--font-display); font-size: 0.82rem;
+  background: color-mix(in srgb, var(--kc) 55%, #fff8e6); color: var(--ink);
+}
+.info-imprevisto b { color: var(--wax); font-family: var(--font-display); font-size: 0.85rem; }
 
 .battuta-log {
   flex-basis: 100%; list-style: none; margin: 0; padding: 0;

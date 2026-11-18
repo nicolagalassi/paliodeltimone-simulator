@@ -23,7 +23,7 @@ import {
   prepareHud, updateHud, updateGiostra, showOutcome, showEnergy,
 } from '../match/match.js';
 import {
-  CARD_TYPES, BATTUTA_SECONDS, cardEffect, cardTowardGoal, whyNot, seqCost, seqDur,
+  CARD_TYPES, BATTUTA_SECONDS, COMBOS, comboOf, cardEffect, cardTowardGoal, whyNot, seqCost, seqDur,
 } from './cards.js';
 import { bonusInfo } from './bonus.js';
 import { createCardSession, toResult } from './cardSim.js';
@@ -31,10 +31,16 @@ import { renderBonusChoice } from '../ui/bonusUI.js';
 
 const $ = (id) => document.getElementById(id);
 
-/** La battuta scorre al tempo vero: deve potersi seguire carta per carta. */
+/**
+ * La battuta scorre al tempo vero, per seguirla carta per carta; "avanti
+ * veloce" la fa scorrere al doppio, per chi ha già capito come va a finire.
+ */
 const PLAYBACK_SPEED = 1;
+const FAST_SPEED = 2.2;
 /** Quanto restano scoperte le due sequenze, ferme, prima che parta la battuta. */
-const REVEAL_MS = 1700;
+const REVEAL_MS = 1100;
+/** L'avanti veloce resta acceso da una tirata all'altra. */
+let fast = false;
 const DEG = 180 / Math.PI;
 
 const sideOf = (playerNo) => (playerNo === 2 ? 'b' : 'a');
@@ -86,6 +92,7 @@ export function playCardMatch({
     /* ---- la schermata ---- */
     $('hud-battuta-tot').textContent = battute;
     $('bonus-overlay').hidden = true;
+    $('battuta-info').hidden = true;
     $('battuta-log').replaceChildren();
     $('screen-match').classList.toggle('is-hotseat', hotseat);
     $('hand-player-a').hidden = true;
@@ -113,7 +120,7 @@ export function playCardMatch({
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       if (running && !paused) {
-        const over = running.runner.advance(dt * PLAYBACK_SPEED);
+        const over = running.runner.advance(dt * (fast ? FAST_SPEED : PLAYBACK_SPEED));
         duel.progress(running.runner.progress);
         if (over) {
           const { done } = running;
@@ -137,8 +144,17 @@ export function playCardMatch({
       last = performance.now();
     };
     $('btn-pause').onclick = () => setPaused(!paused);
+    const fastBtn = $('btn-fast');
+    const setFast = (v) => {
+      fast = v;
+      fastBtn.classList.toggle('is-on', v);
+      fastBtn.setAttribute('aria-pressed', String(v));
+    };
+    setFast(fast);
+    fastBtn.onclick = () => setFast(!fast);
     $('btn-resume').onclick = () => setPaused(false);
     const onPauseKey = (e) => {
+      if (e.code === 'KeyF') { e.preventDefault(); setFast(!fast); return; }
       if (e.code !== 'KeyP' && e.code !== 'Escape') return;
       e.preventDefault();
       setPaused(!paused);
@@ -164,7 +180,7 @@ export function playCardMatch({
         node('span', 'card-cost', `${t.cost}⚡`),
         node('span', 'card-dur', `${t.dur} s`),
         node('strong', 'card-name', t.name),
-        node('em', 'card-effect', cardEffect(card, session.mods[h.index])),
+        node('em', 'card-effect', cardEffect(card, session.battutaMods[h.index])),
       );
       if (order) {
         btn.classList.add('is-queued');
@@ -191,12 +207,19 @@ export function playCardMatch({
 
     function renderTimeline(h, seq, onRemove) {
       const box = $(`hand-timeline-${h.side}`);
+      const combos = comboOf(seq);
       const blocks = seq.map((c, k) => {
         const t = CARD_TYPES[c.type];
         const b = node('button', `tl-block card-${t.kind}`, t.name);
         b.type = 'button';
         b.style.flexGrow = t.dur;
         b.title = `${t.name} · ${t.dur} s — tocca per toglierla`;
+        if (combos[k]) {
+          const co = COMBOS[combos[k]];
+          b.classList.add('has-combo');
+          b.append(node('span', 'tl-combo', `${co.name} +${Math.round((co.mult - 1) * 100)}%`));
+          b.title += ` · combo ${co.name}`;
+        }
         if (onRemove) b.addEventListener('click', () => onRemove(k));
         else b.disabled = true;
         return b;
@@ -348,13 +371,20 @@ export function playCardMatch({
           const track = $(`duel-track-${sides[i]}`);
           const out = [];
           let at = 0;
+          const combos = comboOf(seq);
           seq.forEach((c, k) => {
             const t = CARD_TYPES[c.type];
             const half = rev.misfire[i][k];
             const el = node('span', `duel-block card-${t.kind}${half ? ' is-misfire' : ''}`, t.name + (half ? ' ½' : ''));
             el.style.flexGrow = t.dur;
             el.title = `${t.name} · ${t.dur} s${half ? ' — eseguita a metà' : ''}`;
-            out.push({ el, start: at, end: at + t.dur });
+            if (combos[k]) {
+              el.classList.add('has-combo');
+              el.title += ` · combo ${COMBOS[combos[k]].name}`;
+            }
+            out.push({
+              el, start: at, end: at + t.dur, react: t.kind === 'react', side: i,
+            });
             at += t.dur;
           });
           if (at < BATTUTA_SECONDS - 1e-9) {
@@ -382,8 +412,11 @@ export function playCardMatch({
         $('duel-playhead').style.setProperty('--p', p.toFixed(4));
         for (const out of segs) {
           for (const g of out) {
-            g.el.classList.toggle('is-now', p > 0 && p < 1 && t >= g.start && t < g.end);
+            const now = p > 0 && p < 1 && t >= g.start && t < g.end;
+            g.el.classList.toggle('is-now', now);
             g.el.classList.toggle('is-past', p >= 1 || t >= g.end);
+            // Una risposta che coglie nel segno resta segnata.
+            if (now && g.react && m.rt[g.side].react === 'hit') g.el.classList.add('is-hit');
           }
         }
         if (p > 0) deltas();
@@ -415,6 +448,39 @@ export function playCardMatch({
       }
 
       return { show, progress, settle };
+    }
+
+    /**
+     * Ciò che si sa prima di chiamare: l'intenzione dell'IA (la sua prima
+     * carta) e l'imprevisto della battuta.
+     */
+    function renderInfo() {
+      const box = $('battuta-info');
+      const parts = [];
+      for (const h of humans) {
+        const opp = 1 - h.index;
+        const it = session.intent(opp);
+        if (it === undefined) continue;
+        const p = node('span', 'info-intent');
+        p.style.setProperty('--tc', colors[opp]);
+        p.append(node('b', null, factions[opp].name), document.createTextNode(' apre con '));
+        if (it) {
+          const t = CARD_TYPES[it];
+          p.append(node('strong', `info-card card-${t.kind}`, t.name));
+        } else {
+          p.append(node('strong', 'info-card', 'presa'));
+        }
+        p.title = 'L’intenzione dell’avversario: la prima carta della sequenza che ha già chiamato.';
+        parts.push(p);
+      }
+      const imp = session.imprevisto;
+      if (imp) {
+        const p = node('span', 'info-imprevisto');
+        p.append(node('b', null, imp.name), document.createTextNode(` — ${imp.text}`));
+        parts.push(p);
+      }
+      box.replaceChildren(...parts);
+      box.hidden = !parts.length;
     }
 
     function logLine(parts) {
@@ -487,6 +553,7 @@ export function playCardMatch({
     async function loop() {
       while (!session.over) {
         session.begin();
+        renderInfo();
         showEnergy(els, session.energy);
         $('hud-battuta-n').textContent = session.battuta + 1;
 
@@ -497,7 +564,7 @@ export function playCardMatch({
         const rev = session.reveal(picks);
         duel.show(rev);
         logBattuta(rev);
-        await sleep(REVEAL_MS);
+        await sleep(fast ? REVEAL_MS / 2 : REVEAL_MS);
 
         await new Promise((done) => { running = { runner: session.runner(rev.plans), done }; });
         duel.settle(rev.battuta);
