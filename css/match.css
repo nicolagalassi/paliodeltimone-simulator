@@ -68,6 +68,8 @@
   letter-spacing: 0.1em;
 }
 .btn-pause:hover { border-color: var(--gold); color: var(--ink); }
+.btn-fast { letter-spacing: -0.12em; padding-inline: 0.45rem 0.55rem; }
+.btn-fast.is-on { background: var(--wax); border-color: #5e1010; color: #f6e7c4; }
 
 .pause-overlay {
   position: absolute; inset: 0;

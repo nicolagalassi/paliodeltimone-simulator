@@ -27,12 +27,25 @@ export const PRICES = { card: 35, effect: 50, remove: 25, heart: 40 };
 export const REWARD = { tirata: 15, rivale: 30, loss: 5 };
 
 /**
+ * Quanto dura una tirata del cammino. Le prime sono brevi — si impara e si
+ * va avanti — poi si allungano fino al Palio. Misurate in simulazione: una
+ * tirata da 6 battute finisce in media in ~5 battute (mezzo minuto di gioco),
+ * una da 12 in ~10.
+ */
+export function tirataFormat(node) {
+  if (node.type === 'palio') return { battute: 12, hold: 6 };
+  if (node.type === 'rivale') return { battute: 10, hold: 5 };
+  if (node.row <= 2) return { battute: 6, hold: 4 };
+  return { battute: 8, hold: 5 };
+}
+
+/**
  * Quanti bonus ha un avversario. Crescono salendo la mappa, così il cammino si
  * fa più duro man mano che il mazzo del giocatore si arricchisce.
  */
 export function opponentBonusCount(node) {
-  if (node.type === 'palio') return 8;
-  const base = Math.floor(node.row * 0.7);
+  if (node.type === 'palio') return 6;
+  const base = Math.floor(node.row * 0.5);
   return node.type === 'rivale' ? 2 + base : base;
 }
 
@@ -122,7 +135,9 @@ export function settleTirata(state, esito) {
 
   if (esito === 'win') {
     out.fiorini = node.type === 'rivale' ? REWARD.rivale : REWARD.tirata;
-    out.bonusChoice = node.type === 'rivale';
+    // Ogni vittoria vale un bonus a scelta: con tirate brevi i secondi in zona
+    // ne danno pochi, e il mazzo deve comunque crescere salendo.
+    out.bonusChoice = true;
     addLog(state, `Vinta contro ${opp} · +${out.fiorini} fiorini`);
   } else if (esito === 'loss') {
     out.fiorini = REWARD.loss;

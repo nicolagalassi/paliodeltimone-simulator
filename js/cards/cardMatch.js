@@ -31,10 +31,16 @@ import { renderBonusChoice } from '../ui/bonusUI.js';
 
 const $ = (id) => document.getElementById(id);
 
-/** La battuta scorre al tempo vero: deve potersi seguire carta per carta. */
+/**
+ * La battuta scorre al tempo vero, per seguirla carta per carta; "avanti
+ * veloce" la fa scorrere al doppio, per chi ha già capito come va a finire.
+ */
 const PLAYBACK_SPEED = 1;
+const FAST_SPEED = 2.2;
 /** Quanto restano scoperte le due sequenze, ferme, prima che parta la battuta. */
-const REVEAL_MS = 1700;
+const REVEAL_MS = 1100;
+/** L'avanti veloce resta acceso da una tirata all'altra. */
+let fast = false;
 const DEG = 180 / Math.PI;
 
 const sideOf = (playerNo) => (playerNo === 2 ? 'b' : 'a');
@@ -113,7 +119,7 @@ export function playCardMatch({
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       if (running && !paused) {
-        const over = running.runner.advance(dt * PLAYBACK_SPEED);
+        const over = running.runner.advance(dt * (fast ? FAST_SPEED : PLAYBACK_SPEED));
         duel.progress(running.runner.progress);
         if (over) {
           const { done } = running;
@@ -137,8 +143,17 @@ export function playCardMatch({
       last = performance.now();
     };
     $('btn-pause').onclick = () => setPaused(!paused);
+    const fastBtn = $('btn-fast');
+    const setFast = (v) => {
+      fast = v;
+      fastBtn.classList.toggle('is-on', v);
+      fastBtn.setAttribute('aria-pressed', String(v));
+    };
+    setFast(fast);
+    fastBtn.onclick = () => setFast(!fast);
     $('btn-resume').onclick = () => setPaused(false);
     const onPauseKey = (e) => {
+      if (e.code === 'KeyF') { e.preventDefault(); setFast(!fast); return; }
       if (e.code !== 'KeyP' && e.code !== 'Escape') return;
       e.preventDefault();
       setPaused(!paused);
@@ -497,7 +512,7 @@ export function playCardMatch({
         const rev = session.reveal(picks);
         duel.show(rev);
         logBattuta(rev);
-        await sleep(REVEAL_MS);
+        await sleep(fast ? REVEAL_MS / 2 : REVEAL_MS);
 
         await new Promise((done) => { running = { runner: session.runner(rev.plans), done }; });
         duel.settle(rev.battuta);

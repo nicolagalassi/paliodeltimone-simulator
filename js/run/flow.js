@@ -9,7 +9,7 @@
  */
 
 import {
-  getState, setState, mutate, getCardPreset, clearSave,
+  getState, setState, mutate, clearSave,
 } from '../core/state.js';
 import { showScreen, el } from '../ui/screens.js';
 import {
@@ -148,10 +148,12 @@ function preFight(node, kicker) {
   const opp = getFaction(node.opp);
   const lo = C.opponentLoadout(s, node);
   const isPalio = node.type === 'palio';
+  const fmt = C.tirataFormat(node);
   showScene({
     kicker,
     title: isPalio ? `Il Palio contro ${opp.name}` : `Contro ${opp.name}`,
-    text: `${STYLE_TEXT[opp.aiStyle] ?? ''} ${isPalio
+    text: `${isPalio ? 'Sotto la Torre dell’Orologio la piazza è gremita. ' : ''}`
+      + `${STYLE_TEXT[opp.aiStyle] ?? ''} ${isPalio
       ? 'È la tirata finale: vincerla è vincere il cammino.'
       : node.type === 'rivale'
         ? 'Un rivale agguerrito: se vinci, 30 fiorini e un bonus a scelta.'
@@ -159,7 +161,12 @@ function preFight(node, kicker) {
     seal: NODE_INFO[node.type].icon,
     color: opp.color,
     body: [runStatus(s), opponentSheet(lo)],
-    actions: [{ label: 'Scendi in piazza', primary: true, onClick: () => fight(node, lo) }],
+    actions: [{
+      label: 'Scendi in piazza',
+      detail: `${fmt.battute} battute · vince chi tiene ${fmt.hold} s in zona`,
+      primary: true,
+      onClick: () => fight(node, lo),
+    }],
   });
 }
 
@@ -173,7 +180,7 @@ async function fight(node, oppLoadout) {
     awayTeam: buildTeam(node.opp),
     loadouts: [s.loadout, oppLoadout],
     controllers: [{ type: 'human', playerNo: 1 }, { type: 'ai' }],
-    ...getCardPreset(s),
+    ...C.tirataFormat(node),
     seed: (Number(s.seed) ^ hashSeed(node.id)) >>> 0,
     title: `${me.name} – ${opp.name}`,
   });
@@ -187,7 +194,7 @@ async function fight(node, oppLoadout) {
         kind: 'offers',
         offers: offerBonuses(st.loadout, C.nodeRng(st, node.id, 5), 3),
         kicker: `Vittoria su ${opp.name}`,
-        title: 'Il bottino del rivale',
+        title: node.type === 'rivale' ? 'Il bottino del rivale' : 'Tirata vinta!',
         text: `+${out.fiorini} fiorini, e un bonus a scelta.`,
         why: 'Bottino',
       };
@@ -285,7 +292,7 @@ function showShop(kicker) {
       mutate((st) => {
         st.fiorini -= it.price;
         st.bought.push(key(it));
-        C.gainBonus(st, it.id, 'In bottega');
+        C.gainBonus(st, it.id, 'Al mercato');
       });
       showShop(kicker);
     });
@@ -296,8 +303,8 @@ function showShop(kicker) {
   const heart = stock.find((x) => x.kind === 'heart');
   showScene({
     kicker,
-    title: 'La bottega',
-    text: 'Il bottegaio ha poco, ma buono. Ogni cosa si compra una volta sola.',
+    title: 'La Piazza del Mercato',
+    text: 'Sotto i portici della piazza del mercato i banchi hanno poco, ma buono. Ogni cosa si compra una volta sola.',
     seal: '⚖',
     body: [runStatus(s), goods],
     actions: [
@@ -319,7 +326,7 @@ function showShop(kicker) {
           showShop(kicker);
         },
       },
-      { label: 'Esci dalla bottega', primary: true, onClick: resolveNode },
+      { label: 'Lascia il mercato', primary: true, onClick: resolveNode },
     ],
   });
 }
@@ -330,8 +337,8 @@ function showTraining(kicker) {
   const s = getState();
   showScene({
     kicker,
-    title: 'Allenamento',
-    text: 'Una mattina di prove al timone. Puoi lasciare a casa una chiamata che non serve, o provarne una finché non viene da sola.',
+    title: 'L’antico lavatoio',
+    text: 'All’antico lavatoio, fra le vasche di pietra, la squadra si allena con le funi bagnate. Puoi lasciare a casa una chiamata che non serve, o provarne una finché non viene da sola.',
     seal: '✦',
     body: [runStatus(s)],
     actions: [
@@ -345,7 +352,7 @@ function showTraining(kicker) {
         label: 'Raddoppia una carta',
         detail: 'una copia in più nel mazzo',
         onClick: () => showScene({
-          kicker: 'Allenamento',
+          kicker: 'L’antico lavatoio',
           title: 'Raddoppia una carta',
           text: 'La carta scelta entra nel mazzo una volta in più.',
           seal: '✦',
@@ -365,19 +372,19 @@ function showInn(kicker) {
   const full = s.hearts >= s.maxHearts;
   showScene({
     kicker,
-    title: 'L’osteria',
-    text: 'Un tavolo lungo, pane e vino. La squadra si riposa prima di ripartire.',
+    title: 'La chiesa di San Paolo',
+    text: 'Nella penombra della chiesa di San Paolo la squadra si raccoglie prima di ripartire. C’è chi accende un cero, e chi ripensa alle chiamate sbagliate.',
     seal: '♨',
     body: [runStatus(s)],
     actions: [
       {
-        label: 'Riposa',
+        label: 'Accendi un cero',
         detail: full ? 'i cuori sono già pieni' : '+1 cuore',
         disabled: full,
-        onClick: () => { mutate((st) => { C.healHeart(st); C.addLog(st, 'All’osteria: +1 cuore'); }); resolveNode(); },
+        onClick: () => { mutate((st) => { C.healHeart(st); C.addLog(st, 'In chiesa: +1 cuore'); }); resolveNode(); },
       },
       {
-        label: 'Ripensa al mazzo',
+        label: 'Ripensa alle chiamate',
         detail: 'togli una carta',
         disabled: !C.canRemove(s),
         onClick: () => pickToRemove('', resolveNode),

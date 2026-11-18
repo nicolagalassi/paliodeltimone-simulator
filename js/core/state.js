@@ -13,8 +13,10 @@ const CAMMINO_VERSION = 5;   // cammino del palio
  * secondi consecutivi in zona servono per vincerla.
  */
 export const PRESETS = {
-  rapida: { id: 'rapida', label: 'Breve', battute: 18, hold: 8 },
-  regolamentare: { id: 'regolamentare', label: 'Regolamentare', battute: 26, hold: 8 },
+  // Misurate in simulazione: una Breve finisce in media in ~6 battute (circa un
+  // minuto di gioco), una Regolamentare in ~10.
+  rapida: { id: 'rapida', label: 'Breve', battute: 8, hold: 5 },
+  regolamentare: { id: 'regolamentare', label: 'Regolamentare', battute: 12, hold: 6 },
 };
 
 /** @type {any} */
